@@ -37,12 +37,14 @@ if isempty(Pcol)
     P = nan(size(date,1),1);
     dataHeader{7} = 'Pressure';
 else
-    P = output.(output.tableNames{Ptble})(:,Pcol);
-    dataHeader{7} = output.([output.tableNames{i},'Header']){1,Pcol};
+    for ii=1:length(Pcol)
+        P(:, ii) = output.(output.tableNames{Ptble})(:,Pcol(ii));
+        dataHeader{end+1} = output.([output.tableNames{i},'Header']){1,Pcol(ii)};
+    end
 end
 
 % find rho and cp
-dataHeader(8:9) = {'rho','cp'};
+dataHeader(end+1:end+2) = {'rho','cp'};
 if isempty(Pcol)
     rho = nan(size(date,1),1);
     cp = nan(size(date,1),1);
@@ -52,11 +54,28 @@ else
 end
 
 % find latent heat flux
-dataHeader(10:11) = {'LHflux','LHfluxWPL'};
+
 if isfield(output,'LHflux')
-    LHflux = [output.LHflux(:,2).*output.LHflux(:,4) output.LHflux(:,6)];
+    
+    % find columns
+    LvCol = find(cell2mat(cellfun(@(x) ~isempty(find(contains(x, 'Lv'))), output.LHfluxHeader, 'UniformOutput', false)));
+    
+    for ii=1:length(LvCol)
+        % sensor height
+        tmp = strfind(output.LHfluxHeader{LvCol(ii)}, 'm ');
+        LHheight = output.LHfluxHeader{LvCol(ii)}(1:tmp);
+        
+        %Non corrected flux
+        dataHeader(end+1) = {[LHheight, ' LHflux']};
+        LHflux(:, ii) = output.LHflux(:,LvCol(ii)).*output.LHflux(:,LvCol(ii)+2);
+        
+        %WPL corrected flux
+        dataHeader(end+1) = {[LHheight, 'LHfluxWPL']};
+        LHfluxWPL(:, ii) =  output.LHflux(:,LvCol(ii)+4);
+    end
 else
-    LHflux = nan(size(date,1),2);
+    LHflux = [];
+    LHfluxWPL = [];
 end
 
 % find HMP info 
@@ -70,8 +89,8 @@ zT = nan;
 for i = 1:length(output.tableNames)
     RHtemplate = template.RH;
     Ttemplate = template.T;
-    RHcol = find(strncmpi(output.([output.tableNames{i},'Header'])(1,:),RHtemplate,3)==1);
-    Tcol = find(strncmpi(output.([output.tableNames{i},'Header'])(1,:),Ttemplate,3)==1);
+    RHcol = find(strncmpi(output.([output.tableNames{i},'Header'])(1,:),RHtemplate,length(RHtemplate)-1)==1);
+    Tcol = find(strncmpi(output.([output.tableNames{i},'Header'])(1,:),Ttemplate,length(Ttemplate)-1)==1);
     RHtble = i;
     if RHcol
         % break
@@ -415,7 +434,7 @@ dataHeader(end+1:end+size(tau1,2)) = tau1Header;
 dataHeader(end+1:end+size(tau2,2)) = tau2Header;
 
 % create data array
-data = [date, P, rho, cp, LHflux, RH, T, Tson, Tfw, THfw, dir, spd, w, h1, h2, h3, h4, tke, tau1 tau2];
+data = [date, P, rho, cp, LHflux, LHfluxWPL, RH, T, Tson, Tfw, THfw, dir, spd, w, h1, h2, h3, h4, tke, tau1 tau2];
 
 % store header
 fileName2 = strcat(info.siteFolder(5:end),'_Header.csv');
