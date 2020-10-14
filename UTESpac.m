@@ -60,28 +60,34 @@ info.UTESpacVersion = '5.2';
 
 % enter root folder where site* folders are located
 %info.rootFolder = '/uufs/chpc.utah.edu/common/home/IPAQS-group1/IPAQS19/Travis_Scratch/Data/Sonic_Array';
-info.rootFolder = '/uufs/chpc.utah.edu/common/home/IPAQS-group1/IPAQS19/Data/Sonic_Array';
+<<<<<<< HEAD
+%info.rootFolder = '/uufs/chpc.utah.edu/common/home/IPAQS-group1/IPAQS19/Data/Sonic_Array';
+info.rootFolder = 'H:\Alexei\Data\Oregon_2016\EC_Towers';
+=======
+info.rootFolder = '/uufs/chpc.utah.edu/common/home/u0944063';
+>>>>>>> 7836d117bb81d8ebc050c56b5d7d8ee2379bcc5d
 
 % folder structure between site folder and CSV files
 % Example
 %   .../siteXYZ/*.dat       -> info.foldstruct = '';
 %   .../siteXYZ/CSV/*.dat   -> info.foldstruct = [filesep, 'CSV'];
-info.foldStruct = [filesep, 'CSV'];
-%info.foldStruct = '';
+%info.foldStruct = [filesep, 'CSV'];
+info.foldStruct = '';
 
 % Enter regular expression for file for
 % fields of <Year>, <Month>, <Day> are required
 % <TableName> must match what is specified in siteinfo.m 
-info.FileForm = '(?<serial>\d+)[.](?<TableName>\w*)_(?<Year>\d{4})_(?<Month>\d{2})_(?<Day>\d{2})_(?<Hour>\d{2})(?<Minute>\d{2}).dat';
+info.FileForm = 'CSV_(?<serial>\d+)[.](?<TableName>\w*)_\d+_(?<Year>\d{4})_(?<Month>\d{2})_(?<Day>\d{2})_(?<Hour>\d{2})(?<Minute>\d{2}).dat';
 
 % enter averaging period in minutes.  Must yield an integer when dividied into 60 (e.g. 1, 2, 5, 10, 20, 30)
-info.avgPer = 30;
+info.avgPer = 5;
 
 % save QC'd raw tables (1 = yes, 0 = no)
-info.saveRawConditionedData = true;
+info.saveRawConditionedData = false;
 
-% save structure parameters for temperature and humidity
+% save structure parameters and structure functions for temperature and humidity
 info.saveStructParams = true;
+info.saveStructFunc = true;
 
 % save netCDF file
 info.saveNetCDF = false;
@@ -97,7 +103,7 @@ info.detrendingFormat = 'linear';
 % graphically when the code is executed - for 'global' calculations, all data must first be run with a 'local' planar
 % fit and 5-min averaging
 % MUST be in folder output5
-info.PF.globalCalculation = 'global';
+info.PF.globalCalculation = 'local';
 
 % recalulate global PF coefficients if 'global' calculation is used
 info.PF.recalculateGlobalCoefficients = false;
@@ -165,12 +171,12 @@ info.diagnosticTest.meanLiGasDiagnosticLimit = 220;  % Full strength is 255, les
 template.u = 'Ux_*'; % sonic u  --   [m/s]
 template.v = 'Uy_*'; % sonic v  --   [m/s]
 template.w = 'Uz_*'; % sonic w  --   [m/s]
-template.Tson = 'T_Sonic_*'; % sonic T  --   [C or K]
-template.sonDiagnostic = 'sonic_diag_*'; % sonic diagnostic  --  [-]
+template.Tson = 'Ts_*'; % sonic T  --   [C or K]
+template.sonDiagnostic = 'diag_sonic_*'; % sonic diagnostic  --  [-]
 template.fw = 'fw_*'; % sonic finewires to be used for Eddy Covariance  --  [C]
-template.RH = 'RH_HMP_*'; % slow response relative humidity for virtual temperature calculation  --  [Fract or %]
-template.T = 'T_HMP_*'; % slow response temperature  --  [C]
-template.P = 'pressure'; % pressure  --  [kPa or mBar]
+template.RH = 'HMP_RH_*'; % slow response relative humidity for virtual temperature calculation  --  [Fract or %]
+template.T = 'HMP_T_*'; % slow response temperature  --  [C]
+template.P = 'pressure_*'; % pressure  --  [kPa or mBar]
 template.irgaH2O = 'H2O_*'; % for use with Campbell EC150 and IRGASON.  WPL corrections applied  --  [g/m^3]
 template.irgaH2OsigStrength = 'H2OSig_*'; % EC150 Signal Strength  --  [-]
 template.irgaCO2 = 'CO2_*'; % for use with Campbell EC150 and IRGASON.  WPL corrections applied  --  [mg/m^3]
@@ -205,8 +211,8 @@ if info.saveStructParams
 end
 
 numFiles = size(dataFiles, 1);
-parfor i = 1:numFiles %For some reason parfor sometimes gives random errors. Run with regular for loop at that point
-%for i = 1:numFiles
+%parfor i = 1:numFiles %For some reason parfor sometimes gives random errors. Run with regular for loop at that point
+for i = 1:numFiles
         % load files
         [data, dataInfo] = loadData(dataFiles(i,:, :),i,numFiles,info,tableNames);
         
@@ -227,6 +233,9 @@ parfor i = 1:numFiles %For some reason parfor sometimes gives random errors. Run
 
         % find sensible heat flux, momentum flux, latent heat flux, CO2 flux
         [output, raw] = fluxes(data, rotatedSonicData, info, output, sensorInfo,tableNames);
+        
+        % Check stationarity of turbulent signals
+        [output] = StationarityWrap(data, rotatedSonicData, info, output, sensorInfo, tableNames);
         
         % find spatial structure function and structure params
         if info.saveStructParams

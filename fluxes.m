@@ -35,9 +35,7 @@ try
         end
         
         % store PkPa in raw tables
-        if info.saveRawConditionedData
-            raw.P = [Ptime, PkPa]; % u
-        end
+        raw.P = [Ptime, PkPa]; % u
         
         % average P down to avgPer
         PkPaAvg = simpleAvg([PkPa, Ptime],info.avgPer,0);
@@ -200,58 +198,54 @@ try
             sigma = nan(N,1); % standard deviations (u, v, w)
             
             % initialize raw variable matrices
-            if info.saveRawConditionedData
-                raw.u = nan(bp(end),numSonics); % u
-                raw.v = nan(bp(end),numSonics); % v
-                raw.w = nan(bp(end),numSonics); % w
-                raw.uPF = nan(bp(end),numSonics);  % u planar fit and yaw corrected
-                raw.vPF = nan(bp(end),numSonics);  % v planar fit and yaw corrected
-                raw.wPF = nan(bp(end),numSonics);  % w planar fit and yaw corrected
-                raw.sonTs = nan(bp(end),numSonics); % Temperature from Sonic
-                raw.uPF_Prime = nan(bp(end),numSonics);  % u' planar fit and yaw corrected
-                raw.vPF_Prime = nan(bp(end),numSonics); % v' planar fit and yaw corrected
-                raw.wPF_Prime = nan(bp(end),numSonics); % w' planar fit and yaw corrected
-                raw.sonTsPrime = nan(bp(end),numSonics); % Ts' from sonic
-                raw.t = t; % serial time stamp
-                raw.z = nan(1,numSonics); % sonic heights
-                
-                % finewires
-                if isfield(sensorInfo,'fw')
-                    raw.fwTh = nan(bp(end),numSonics); % theta from FW
-                    raw.fwT = nan(bp(end),numSonics); % T from FW
-                    faw.fwTPrime = nan(bp(end),numSonics); % T' from FW
-                    raw.fwThPrime = nan(bp(end),numSonics); % theta' from finewire
-                end
-                
-                
-                % water vapor
-                if isfield(sensorInfo,'irgaH2O')
-                    numH2OSensors = size(sensorInfo.irgaH2O,1);
-                    raw.rhov = nan(bp(end),numH2OSensors); % H2O
-                    raw.rhovPrime = nan(bp(end),numH2OSensors); % H2O'
-                elseif isfield(sensorInfo,'LiH2O')
-                    numH2OSensors = size(sensorInfo.LiH2O,1);
-                    raw.rhov = nan(bp(end),numH2OSensors); % H2O
-                    raw.rhovPrime = nan(bp(end),numH2OSensors); % H2O'
-                elseif isfield(sensorInfo,'KH2O')
-                    numH2OSensors = size(sensorInfo.KH2O,1);
-                    raw.rhov = nan(bp(end),numH2OSensors); % H2O
-                    raw.rhovPrime = nan(bp(end),numH2OSensors); % H2O'
-                end
-                
-                % CO2
-                if isfield(sensorInfo,'irgaCO2')
-                    numCO2Sensors = size(sensorInfo.irgaCO2,1);
-                    raw.rhoCO2 = nan(bp(end),numCO2Sensors); % CO2
-                    raw.rhoCO2Prime = nan(bp(end),numCO2Sensors); % CO2'
-                elseif isfield(sensorInfo,'LiCO2')
-                    numCO2Sensors = size(sensorInfo.LiCO2,1);
-                    raw.rhoCO2 = nan(bp(end),numCO2Sensors); % CO2
-                    raw.rhoCO2Prime = nan(bp(end),numCO2Sensors); % CO2'
-                end
-                
-            else
-                raw = [];
+
+            raw.u = nan(bp(end),numSonics); % u
+            raw.v = nan(bp(end),numSonics); % v
+            raw.w = nan(bp(end),numSonics); % w
+            raw.uPF = nan(bp(end),numSonics);  % u planar fit and yaw corrected
+            raw.vPF = nan(bp(end),numSonics);  % v planar fit and yaw corrected
+            raw.wPF = nan(bp(end),numSonics);  % w planar fit and yaw corrected
+            raw.sonTs = nan(bp(end),numSonics); % Temperature from Sonic
+            raw.uPF_Prime = nan(bp(end),numSonics);  % u' planar fit and yaw corrected
+            raw.vPF_Prime = nan(bp(end),numSonics); % v' planar fit and yaw corrected
+            raw.wPF_Prime = nan(bp(end),numSonics); % w' planar fit and yaw corrected
+            raw.sonTsPrime = nan(bp(end),numSonics); % Ts' from sonic
+            raw.t = t; % serial time stamp
+            raw.z = nan(1,numSonics); % sonic heights
+
+            % finewires
+            if isfield(sensorInfo,'fw')
+                raw.fwTh = nan(bp(end),numSonics); % theta from FW
+                raw.fwT = nan(bp(end),numSonics); % T from FW
+                faw.fwTPrime = nan(bp(end),numSonics); % T' from FW
+                raw.fwThPrime = nan(bp(end),numSonics); % theta' from finewire
+            end
+
+
+            % water vapor
+            if isfield(sensorInfo,'irgaH2O')
+                numH2OSensors = size(sensorInfo.irgaH2O,1);
+                raw.rhov = nan(bp(end),numH2OSensors); % H2O
+                raw.rhovPrime = nan(bp(end),numH2OSensors); % H2O'
+            elseif isfield(sensorInfo,'LiH2O')
+                numH2OSensors = size(sensorInfo.LiH2O,1);
+                raw.rhov = nan(bp(end),numH2OSensors); % H2O
+                raw.rhovPrime = nan(bp(end),numH2OSensors); % H2O'
+            elseif isfield(sensorInfo,'KH2O')
+                numH2OSensors = size(sensorInfo.KH2O,1);
+                raw.rhov = nan(bp(end),numH2OSensors); % H2O
+                raw.rhovPrime = nan(bp(end),numH2OSensors); % H2O'
+            end
+
+            % CO2
+            if isfield(sensorInfo,'irgaCO2')
+                numCO2Sensors = size(sensorInfo.irgaCO2,1);
+                raw.rhoCO2 = nan(bp(end),numCO2Sensors); % CO2
+                raw.rhoCO2Prime = nan(bp(end),numCO2Sensors); % CO2'
+            elseif isfield(sensorInfo,'LiCO2')
+                numCO2Sensors = size(sensorInfo.LiCO2,1);
+                raw.rhoCO2 = nan(bp(end),numCO2Sensors); % CO2
+                raw.rhoCO2Prime = nan(bp(end),numCO2Sensors); % CO2'
             end
             
             % initialize headers
@@ -547,18 +541,16 @@ try
                 wPF_P = nandetrend(wPF(bp(jj)+1:bp(jj+1)),info.detrendingFormat);
                 
                 % store rotated data
-                if info.saveRawConditionedData
-                    raw.u(bp(jj)+1:bp(jj+1),ii) = u(bp(jj)+1:bp(jj+1));
-                    raw.v(bp(jj)+1:bp(jj+1),ii) = v(bp(jj)+1:bp(jj+1));
-                    raw.w(bp(jj)+1:bp(jj+1),ii) = w(bp(jj)+1:bp(jj+1));
-                    raw.uPF(bp(jj)+1:bp(jj+1),ii) = uPF(bp(jj)+1:bp(jj+1));
-                    raw.vPF(bp(jj)+1:bp(jj+1),ii) = vPF(bp(jj)+1:bp(jj+1));
-                    raw.wPF(bp(jj)+1:bp(jj+1),ii) = wPF(bp(jj)+1:bp(jj+1));
-                    raw.uPF_Prime(bp(jj)+1:bp(jj+1),ii) = uPF_P;
-                    raw.vPF_Prime(bp(jj)+1:bp(jj+1),ii) = vPF_P;
-                    raw.wPF_Prime(bp(jj)+1:bp(jj+1),ii) = wPF_P;
-                    raw.z(ii) = sonHeight;
-                end
+                raw.u(bp(jj)+1:bp(jj+1),ii) = u(bp(jj)+1:bp(jj+1));
+                raw.v(bp(jj)+1:bp(jj+1),ii) = v(bp(jj)+1:bp(jj+1));
+                raw.w(bp(jj)+1:bp(jj+1),ii) = w(bp(jj)+1:bp(jj+1));
+                raw.uPF(bp(jj)+1:bp(jj+1),ii) = uPF(bp(jj)+1:bp(jj+1));
+                raw.vPF(bp(jj)+1:bp(jj+1),ii) = vPF(bp(jj)+1:bp(jj+1));
+                raw.wPF(bp(jj)+1:bp(jj+1),ii) = wPF(bp(jj)+1:bp(jj+1));
+                raw.uPF_Prime(bp(jj)+1:bp(jj+1),ii) = uPF_P;
+                raw.vPF_Prime(bp(jj)+1:bp(jj+1),ii) = vPF_P;
+                raw.wPF_Prime(bp(jj)+1:bp(jj+1),ii) = wPF_P;
+                raw.z(ii) = sonHeight;
                 
                 % find standard deviations of wind vector, sonic and finewire temperature
                 if ~isempty(fw) % check for fw first
@@ -641,10 +633,8 @@ try
                 if rotatedSonFlag(jj)||TsonFlag(jj); L(jj,2+(ii-1)) = nan; end;
                 
                 % store thetaSonP in raw structure
-                if info.saveRawConditionedData
-                    raw.sonTs(bp(jj)+1:bp(jj+1),ii) = Tson(bp(jj)+1:bp(jj+1));
-                    raw.sonTsPrime(bp(jj)+1:bp(jj+1),ii) = TsonP;
-                end
+                raw.sonTs(bp(jj)+1:bp(jj+1),ii) = Tson(bp(jj)+1:bp(jj+1));
+                raw.sonTsPrime(bp(jj)+1:bp(jj+1),ii) = TsonP;
                 
                 % find Th'w' and Th'wPF' from sonic
                 if ~isempty(thetaSonAir)
@@ -714,11 +704,9 @@ try
                     if rotatedSonFlag(jj)||fwFlag(jj); Hlat(jj,13+(ii-1)*12) = nan; end;
                     
                     % store fwthetaP in raw structure
-                    if info.saveRawConditionedData
-                        raw.fwThPrime(bp(jj)+1:bp(jj+1),ii) = thetaFwP;
-                        raw.fwTh(bp(jj)+1:bp(jj+1),ii) = thetaFw(bp(jj)+1:bp(jj+1));
-                        raw.fwT(bp(jj)+1:bp(jj+1),ii) = fw(bp(jj)+1:bp(jj+1));
-                    end
+                    raw.fwThPrime(bp(jj)+1:bp(jj+1),ii) = thetaFwP;
+                    raw.fwTh(bp(jj)+1:bp(jj+1),ii) = thetaFw(bp(jj)+1:bp(jj+1));
+                    raw.fwT(bp(jj)+1:bp(jj+1),ii) = fw(bp(jj)+1:bp(jj+1));
                 end
                 
                 % find VTh'w' and VTh'wPF' from fw
@@ -767,10 +755,8 @@ try
                     H2Op = nandetrend(rho_v(bp(jj)+1:bp(jj+1)),info.detrendingFormat); %(g/m^3)
                     
                     % store H2OP in raw structure
-                    if info.saveRawConditionedData
-                        raw.rhovPrime(bp(jj)+1:bp(jj+1),H2OsensorNumber) = H2Op; % (g/m^3)
-                        raw.rhov(bp(jj)+1:bp(jj+1),H2OsensorNumber) = rho_v(bp(jj)+1:bp(jj+1)); % (g/m^3)
-                    end
+                    raw.rhovPrime(bp(jj)+1:bp(jj+1),H2OsensorNumber) = H2Op; % (g/m^3)
+                    raw.rhov(bp(jj)+1:bp(jj+1),H2OsensorNumber) = rho_v(bp(jj)+1:bp(jj+1)); % (g/m^3)
                     
                     E = nanmean(wP.*H2Op);     % [g /m^2/s] find evaporation flux from unrotated data
                     EPF = nanmean(wPF_P.*H2Op);  % [g /m^2/s] find evaporation flux from rotated data
@@ -827,11 +813,10 @@ try
                         CO2flux(jj,4+(ii-1)*4) = CO2flux(jj,2+(ii-1)*4) + Md/Mv*(rho_CO2avg/rhodAvg(jj))*evapFlux + (1+Md/Mv*rhovAvg(jj)/rhodAvg(jj))*(rho_CO2avg/Tref_Kavg(jj))*kinSenFlux; CO2fluxHeader{4+(ii-1)*4} = strcat(num2str(sonHeight),'m WPL,w'':CO2(kg/m^2s)');
                         
                         CO2flux(jj,5+(ii-1)*4) = CO2flux(jj,3+(ii-1)*4) + Md/Mv*(rho_CO2avg/rhodAvg(jj))*evapFlux + (1+Md/Mv*rhovAvg(jj)/rhodAvg(jj))*(rho_CO2avg/Tref_Kavg(jj))*kinSenFlux; CO2fluxHeader{5+(ii-1)*4} = strcat(num2str(sonHeight),'m WPL,wPF'':CO2(mol/m^2s)');
+                        
                         % store CO2P in raw structure
-                        if info.saveRawConditionedData
-                            raw.rhoCO2Prime(bp(jj)+1:bp(jj+1),CO2sensorNumber) = rho_CO2p;
-                            raw.rhoCO2(bp(jj)+1:bp(jj+1),CO2sensorNumber) = rho_CO2(bp(jj)+1:bp(jj+1));
-                        end
+                        raw.rhoCO2Prime(bp(jj)+1:bp(jj+1),CO2sensorNumber) = rho_CO2p;
+                        raw.rhoCO2(bp(jj)+1:bp(jj+1),CO2sensorNumber) = rho_CO2(bp(jj)+1:bp(jj+1));
                     end
                 end
                 

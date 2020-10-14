@@ -90,7 +90,7 @@ for qq=1:MaxInst
             T = raw.fwT(cntr1:cntr2, qq)+273.15; %Temperature [K]
             
             %Calculate temperature structure parameter
-            [~, Ct2(ii)] = ...
+            [Dt2(ii, :), Ct2(ii)] = ...
                 crossStruct(T, T, 20, 'spatial', sigma_u, sigma_v, sigma_w, U); 
             if Ct2(ii)<0
                 Ct2(ii) = nan;
@@ -102,7 +102,7 @@ for qq=1:MaxInst
         
         
         %Calculate temperature structure parameter with Sonic temperature
-        [~, Ctson2(ii)] = ...
+        [Dtson2(ii, :), Ctson2(ii)] = ...
             crossStruct(TSon, TSon, 20, 'spatial', sigma_u, sigma_v, sigma_w, U); 
         if Ctson2(ii)<0
             Ctson2(ii) = nan;
@@ -130,7 +130,7 @@ for qq=1:MaxInst
                 
                 
                 %Calculate humidity structure parameter
-                [~, Cq2(ii)] = ...
+                [Dq2(ii, :), Cq2(ii)] = ...
                     crossStruct(q, q, 20, 'spatial', sigma_u, sigma_v, sigma_w, U);
                 if Cq2(ii)<0
                     Cq2(ii) = nan;
@@ -138,14 +138,14 @@ for qq=1:MaxInst
 
                 %Calculate temperature humidity correlation
                 if ~no_fw
-                    [~, Ctq(ii)] = ...
+                    [Dtq(ii, :), Ctq(ii)] = ...
                         crossStruct(T, q, 20, 'spatial', sigma_u, sigma_v, sigma_w, U);
                     
                     r_tq(ii) = Ctq(ii)./sqrt(Ct2(ii).*Cq2(ii));
                 end
                 
                 %Calculate temperature humidity correlation TSonic
-                [~, Ctsonq(ii)] = ...
+                [Dtsonq(ii, :), Ctsonq(ii)] = ...
                     crossStruct(TSon, q, 20, 'spatial', sigma_u, sigma_v, sigma_w, U);
                 
                 %Calculate temperature humidity correlation
@@ -254,6 +254,36 @@ for qq=1:MaxInst
         end
     end
 
-    clearvars C* r_*
+    %Save structure functions
+    if info.saveStructFunc
+        if exist('Dt2', 'var')
+            output.StructFunc{qq}.Dt2 = Dt2;
+            lenStructFunc = size(Dt2, 2);
+        end
+        
+        if exist('Dtson2', 'var')
+            output.StructFunc{qq}.Dtson2 = Dtson2;
+            lenStructFunc = size(Dtson2, 2);
+        end
+        
+        if exist('Dtq', 'var')
+            output.StructFunc{qq}.Dtq = Dtq;
+            lenStructFunc = size(Dtq, 2);
+        end
+        
+        if exist('Dtsonq', 'var')
+            output.StructFunc{qq}.Dtsonq = Dtsonq;
+            lenStructFunc = size(Dtsonq, 2);
+        end
+        
+        if exist('Dq2', 'var')
+            output.StructFunc{qq}.Dq2 = Dq2;
+            lenStructFunc = size(Dq2, 2);
+        end
+        
+        output.StructFuncHeader = {['Structure function for ', num2str(lenStructFunc), ' seprations'], ['Separation is [1:1:', num2str(lenStructFunc), ']./freq.*U'], 'Appropriate timestamp can be found in StructParam field'};
+        
+    end
+    clearvars D* C* r_*
     
 end

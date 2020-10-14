@@ -2,7 +2,7 @@
 **Created by:** Derek Jensen (<derek591@gmail.com>) and Eric Pardyjak  
 **Current Version updates:** Alexei Perelet (<alexei.pere@gmail.com>)  
 **Version:** 5.2  
-**Version Date:** 10 Oct 2019
+**Version Date:** 20 Apr  2020
  
 ***
 ### Version History  
@@ -25,7 +25,8 @@
 - Parallel running 'option': scroll to ~line 207 and comment / uncomment parfor or for
 - Most of the time parallel works, but error messages become unreadable so run in serial if getting error messages for debug purposes
 - Structure Parameter calculation now works without specific pressure measurement or if no IRGA
-
+- Fixed year>=2020 error
+- Fixed file loading issue if loading only 1 day --THIS MAY BREAK OTHER FILE LOADING--
 
 #### 5.1  
 - Allow user input of file format so files other than default cardConvert will work

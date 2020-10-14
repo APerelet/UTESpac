@@ -18,7 +18,7 @@ elseif nargin == 5
 end
 
 % find serial date column
-tCol = find(input(1,:) > datenum(2000,1,1) & input(1,:) < datenum(2020,1,1),1,'last');
+tCol = find(input(1,:) > datenum(1000,1,1) & input(1,:) < datenum(2999,1,1),1,'last');
 
 % find total number of averaging bins
 N = round(ceil((input(end,tCol))-floor(input(1,tCol)))/(avgPer/(24*60)));

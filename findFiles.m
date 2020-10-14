@@ -34,11 +34,15 @@ for ii = 1:length(headers)
     currentHeaderFileName = headers(ii).name;
     
     % Ignore Tables
-    if any(cell2mat(cellfun(@(x) ~isempty(strfind(currentHeaderFileName, x)), info.TableIgnore, 'UniformOutput', 0)))
-        fprintf(['\n---------------------\nSkipping files associated with: ',...
-            currentHeaderFileName, '\n---------------------\n']);
-        ignoreFlag(ii) = 1;
-        continue
+    if isfield(info, 'TableIgnore')
+        if any(cell2mat(cellfun(@(x) ~isempty(strfind(currentHeaderFileName, x)), info.TableIgnore, 'UniformOutput', 0)))
+            fprintf(['\n---------------------\nSkipping files associated with: ',...
+                currentHeaderFileName, '\n---------------------\n']);
+            ignoreFlag(ii) = 1;
+            continue
+        else
+            ignoreFlag(ii) = 0;
+        end
     else
         ignoreFlag(ii) = 0;
     end
@@ -190,11 +194,11 @@ for ii = 1:length(headers)
     if ii == 1
         dateBegin = floor(min(csvDates)-20); % all tables must begin and end within 20 days of first and last dates of table1
         dateEnd = floor(max(csvDates)+20);
-        if length(ind)==2
-            dataFiles = cell(1,length(headers));
-        else
+% % %         if length(ind)==2
+% % %             dataFiles = cell(1,length(headers));
+% % %         else
             dataFiles = cell(dateEnd-dateBegin,length(headers), round(max(diff(ind))/10)*10);
-        end
+% % %         end
     end
     
     % Check if there are files with outlier date stamps
@@ -205,15 +209,15 @@ for ii = 1:length(headers)
                'Please Delete or fix the dates']);
         end
     
-    if length(ind)==2
-        dataFiles{1, ii} = csvFiles{1};
-    else
+% % %     if length(ind)==2
+% % %         dataFiles{1, ii} = csvFiles{1};
+% % %     else
         for jj = 1:(length(ind)-1)
             for qq=1:length(ind(jj):ind(jj+1)-1)
                 dataFiles{a(jj)-dateBegin,ii, qq} = csvFiles{ind(jj)+qq-1};
             end
         end
-    end
+% % %     end
 end
 
 %Remove Ignored tables
