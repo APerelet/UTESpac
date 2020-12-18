@@ -110,6 +110,11 @@ for ii = 1:length(headers)
     % eliminate the header file from the list
     tableFiles(~cellfun(@isempty,strfind({tableFiles(:).name},'header'))) = [];
     
+    if isempty(tableFiles)
+       error(['Could not find table ', tableName, char(10), ...
+           char(9), 'Please confirm header and data files have same name', char(10)]);
+    end
+    
     %In case of similar table names, omit wrong table names
     clearvars nameFlag
     for kk = 1:length(tableFiles)
@@ -209,15 +214,15 @@ for ii = 1:length(headers)
                'Please Delete or fix the dates']);
         end
     
-% % %     if length(ind)==2
-% % %         dataFiles{1, ii} = csvFiles{1};
-% % %     else
+    if length(ind)==2
+        dataFiles{1, ii, 1} = csvFiles{1};
+    else
         for jj = 1:(length(ind)-1)
             for qq=1:length(ind(jj):ind(jj+1)-1)
                 dataFiles{a(jj)-dateBegin,ii, qq} = csvFiles{ind(jj)+qq-1};
             end
         end
-% % %     end
+    end
 end
 
 %Remove Ignored tables

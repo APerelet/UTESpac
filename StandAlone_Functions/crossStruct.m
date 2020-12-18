@@ -13,16 +13,17 @@
     %D_xy - structure function of X and Y
     %C_xy - structure parameter of X and Y in inertial subrange
 
-function [D_xy, C_xy] = crossStruct(X, Y, freq, varargin)
+function [D_xy, C_xy, r] = crossStruct(X, Y, freq, z, sep, r_diff, varargin)
+
 if length(X)~=length(Y)
     error('X and Y must be vectors of equal length');
 end
 
-if nargin==3 || strcmp(varargin{1}, 'temporal')
+if nargin==6 || strcmp(varargin{1}, 'temporal')
     %calculates temporal structure function
     denom = 1;
     flag=0;
-elseif nargin==8 && strcmp(varargin{1}, 'spatial')
+elseif nargin==11 && strcmp(varargin{1}, 'spatial')
     flag=1;
     sigma_u = varargin{2};
     sigma_v = varargin{3};
@@ -54,9 +55,28 @@ for ii=1:pnts
 end 
 
 %Calculate Structure Parameter
-delta = 10;
+
 if flag
-    C_xy = D_xy(delta)*((delta/freq)*U)^(-2/3);
+    r = [1:1:100]./freq.*U;
 else
-    C_xy = D_xy(delta)*((delta/freq))^(-2/3);
+    r = [1:1:100]./freq;
+end
+
+%Find r/z = sep
+[~, ind] = min(abs(r./z-sep));
+
+rVec = r(ind-r_diff:ind+r_diff);
+
+rVec = rVec(rVec>0);
+for qq=1:length(rVec)
+    r_ = qq;
+    
+    if isnan(r_)
+        C_xy(qq) = nan;
+    end
+    if flag
+        C_xy(qq) = D_xy(r_)*((r_/freq)*U)^(-2/3);
+    else
+        C_xy(qq) = D_xy(r_)*((r_/freq))^(-2/3);
+    end
 end

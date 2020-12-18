@@ -29,7 +29,7 @@ for ii = 1:size(dataFiles,2)
         if ~isdir(dataFiles{1, ii, jj})
             if first
                 % display info
-                fprintf('\nloading %s.\nDefined in siteInfo.m\n\tExpected Scan Frequency = %0.02g Hz\n\tNumber of .csv Columns = %0.02g.',dataFiles{ii},sampleFrequency,expectedTableColumns)
+                fprintf('\nloading %s.\nDefined in siteInfo.m\n\tExpected Scan Frequency = %0.02g Hz\n\tNumber of .csv Columns = %0.02g \n\t',dataFiles{ii},sampleFrequency,expectedTableColumns)
                 temp = load(dataFiles{1, ii, jj});
                 first = 0;
             else

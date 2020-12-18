@@ -54,18 +54,14 @@
 %% ----------------------------------------------INFORMATION------------------------------------------------------------
 
 close all; clearvars; clc;
+warning off backtrace
 
 % current UTESpac Version
 info.UTESpacVersion = '5.2';
 
 % enter root folder where site* folders are located
 %info.rootFolder = '/uufs/chpc.utah.edu/common/home/IPAQS-group1/IPAQS19/Travis_Scratch/Data/Sonic_Array';
-<<<<<<< HEAD
-%info.rootFolder = '/uufs/chpc.utah.edu/common/home/IPAQS-group1/IPAQS19/Data/Sonic_Array';
-info.rootFolder = 'H:\Alexei\Data\Oregon_2016\EC_Towers';
-=======
-info.rootFolder = '/uufs/chpc.utah.edu/common/home/u0944063';
->>>>>>> 7836d117bb81d8ebc050c56b5d7d8ee2379bcc5d
+info.rootFolder = '/Users/alexeiperelet_mac/Downloads';
 
 % folder structure between site folder and CSV files
 % Example
@@ -86,8 +82,13 @@ info.avgPer = 5;
 info.saveRawConditionedData = false;
 
 % save structure parameters and structure functions for temperature and humidity
-info.saveStructParams = true;
-info.saveStructFunc = true;
+info.saveStructParams = false;
+info.saveStructFunc = false;
+
+% Separation to use for calculating structure parameters. 0.5 is upper
+% limit of power law range
+info.StructParamSep = 0.4;
+info.StructParam_rDiff = 0; % calculate structure parameters for info.StructParamSep +- info.StructParam_rDiff CURRENTLY NOT WORKING OUTSIDE 0
 
 % save netCDF file
 info.saveNetCDF = false;
@@ -234,8 +235,14 @@ for i = 1:numFiles
         % find sensible heat flux, momentum flux, latent heat flux, CO2 flux
         [output, raw] = fluxes(data, rotatedSonicData, info, output, sensorInfo,tableNames);
         
-        % Check stationarity of turbulent signals
-        [output] = StationarityWrap(data, rotatedSonicData, info, output, sensorInfo, tableNames);
+        %%%%%%%%%%%%%%%%%%
+        %WORK IN PROGRESS
+        %%%%%%%%%%%%%%%%%%
+% % %         % Check stationarity of turbulent signals
+% % %         [output] = StationarityWrap(data, rotatedSonicData, info, output, sensorInfo, tableNames);
+        %%%%%%%%%%%%%%%%%%
+        %WORK IN PROGRESS
+        %%%%%%%%%%%%%%%%%%
         
         % find spatial structure function and structure params
         if info.saveStructParams
