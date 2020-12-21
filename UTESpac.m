@@ -61,7 +61,7 @@ info.UTESpacVersion = '5.2';
 
 % enter root folder where site* folders are located
 %info.rootFolder = '/uufs/chpc.utah.edu/common/home/IPAQS-group1/IPAQS19/Travis_Scratch/Data/Sonic_Array';
-info.rootFolder = '/Users/alexeiperelet_mac/Downloads';
+info.rootFolder = '/Users/alexeiperelet_mac/Google Drive/UofU/Research/Experiments/Oregon_Vineyard/Data/EC_Towers';
 
 % folder structure between site folder and CSV files
 % Example
@@ -73,7 +73,9 @@ info.foldStruct = '';
 % Enter regular expression for file for
 % fields of <Year>, <Month>, <Day> are required
 % <TableName> must match what is specified in siteinfo.m 
-info.FileForm = 'CSV_(?<serial>\d+)[.](?<TableName>\w*)_\d+_(?<Year>\d{4})_(?<Month>\d{2})_(?<Day>\d{2})_(?<Hour>\d{2})(?<Minute>\d{2}).dat';
+%info.FileForm = 'CSV_(?<serial>\d+)[.](?<TableName>\w*)_\d+_(?<Year>\d{4})_(?<Month>\d{2})_(?<Day>\d{2})_(?<Hour>\d{2})(?<Minute>\d{2}).dat';
+info.FileForm = 'CSV_(?<serial>\d+)[.](?<TableName>\w*)_(?<Year>\d{4})_(?<Month>\d{2})_(?<Day>\d{2})_(?<Hour>\d{2})(?<Minute>\d{2}).dat';
+
 
 % enter averaging period in minutes.  Must yield an integer when dividied into 60 (e.g. 1, 2, 5, 10, 20, 30)
 info.avgPer = 5;
@@ -172,8 +174,8 @@ info.diagnosticTest.meanLiGasDiagnosticLimit = 220;  % Full strength is 255, les
 template.u = 'Ux_*'; % sonic u  --   [m/s]
 template.v = 'Uy_*'; % sonic v  --   [m/s]
 template.w = 'Uz_*'; % sonic w  --   [m/s]
-template.Tson = 'Ts_*'; % sonic T  --   [C or K]
-template.sonDiagnostic = 'diag_sonic_*'; % sonic diagnostic  --  [-]
+template.Tson = 'T_Sonic_*'; % sonic T  --   [C or K]
+template.sonDiagnostic = 'sonic_diag_*'; % sonic diagnostic  --  [-]
 template.fw = 'fw_*'; % sonic finewires to be used for Eddy Covariance  --  [C]
 template.RH = 'HMP_RH_*'; % slow response relative humidity for virtual temperature calculation  --  [Fract or %]
 template.T = 'HMP_T_*'; % slow response temperature  --  [C]
@@ -238,8 +240,8 @@ for i = 1:numFiles
         %%%%%%%%%%%%%%%%%%
         %WORK IN PROGRESS
         %%%%%%%%%%%%%%%%%%
-% % %         % Check stationarity of turbulent signals
-% % %         [output] = StationarityWrap(data, rotatedSonicData, info, output, sensorInfo, tableNames);
+        % Check stationarity of turbulent signals
+        [output] = StationarityWrap(data, rotatedSonicData, info, output, sensorInfo, tableNames);
         %%%%%%%%%%%%%%%%%%
         %WORK IN PROGRESS
         %%%%%%%%%%%%%%%%%%
