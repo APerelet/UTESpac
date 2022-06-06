@@ -29,7 +29,7 @@ else
 end
 %% save .mat structure
 fileName = strcat(info.siteFolder(5:end),'_',num2str(info.avgPer),'minAvg_',PFtype,detrendType,fileDate,'.mat');
-save(strcat(saveDir,filesep,outputDir, filesep, fileName),'output');
+save(strcat(saveDir,filesep,outputDir, filesep, fileName),'output', '-v7.3');
 %% save .csv file
 if info.saveCSV
     csvSave(template,output,info)
@@ -83,6 +83,6 @@ if info.saveRawConditionedData
     end
     
     fileName = strcat(info.siteFolder(5:end),'_raw_',PFtype,detrendType,fileDate);
-    save(strcat(saveDir,filesep,rawDir,filesep,fileName),'rawFlux');
+    save(strcat(saveDir,filesep,rawDir,filesep,fileName),'rawFlux', '-v7.3');
 end
 end

@@ -13,7 +13,7 @@
     %D_xy - structure function of X and Y
     %C_xy - structure parameter of X and Y in inertial subrange
 
-function [D_xy, C_xy, r_] = crossStruct(X, Y, freq, z, sep, r_diff, varargin)
+function [D_xxy, e, r_] = crossStruct_n(X, Y, freq, z, sep, r_diff, varargin)
 
 if length(X)~=length(Y)
     error('X and Y must be vectors of equal length');
@@ -23,7 +23,7 @@ pnts = 500;
 if pnts>length(X)
     pnts=length(X);
 end
-D_xy = zeros(pnts,1);
+D_xxy = zeros(pnts,1);
 
 if nargin==6 || strcmp(varargin{1}, 'temporal')
     %calculates temporal structure function
@@ -39,8 +39,8 @@ elseif nargin==11 && strcmp(varargin{1}, 'spatial')
     % Check if nans
     nanCheck = isnan(sigma_u+sigma_v+sigma_w+U);
     if nanCheck
-        C_xy = nan*ones(1, r_diff+1);
-        D_xy = nan*D_xy;
+        e = nan*ones(1, r_diff+1);
+        D_xxy = nan*D_xxy;
         r_ = nan.*(1:1:pnts);
         return;
     end
@@ -57,11 +57,13 @@ end
 
 %Calculate structure function
 for ii=1:pnts
-    X_i = X(1+ii:end);
-    X_k = X(1:(end-ii));
+    X1_i = X(1+ii:end);
+    X1_k = X(1:(end-ii));
+    X2_i = X(1+ii:end);
+    X2_k = X(1:(end-ii));
     Y_i = Y(1+ii:end);
     Y_k = Y(1:(end-ii));
-    D_xy(ii)= nanmean((X_i-X_k).*(Y_i-Y_k))./denom;
+    D_xxy(ii)= nanmean((X1_i-X1_k).*(X2_i-X2_k).*(Y_i-Y_k))./denom;
 end 
 
 %Calculate Structure Parameter
@@ -72,48 +74,14 @@ else
     r_ = [1:1:pnts]./freq;
 end
 
-%for jj = 1:pnts
-%    C_xy_(jj) = D_xy(jj)*r_(jj)^(-2/3);
-%end
-%[~, ind] = max(abs(C_xy_));
-
-%[~, ind] = min(abs(diff(log10(D_xy))./diff(log10(r_))'-2/3));
-
-% Find points where Structure function is within 5% of 2/3 power law
-mask = abs((diff(log10(D_xy))./diff(log10(r_))'-2/3))/(2/3)<0.05;
+% Find points where Structure function is within 5% of 1 power law
+mask = abs((diff(log10(D_xxy))./diff(log10(r_))'-1))/(1)<0.05;
 mask(end+1) = false;
 mask(or(r_<0.1, r_>z)) = false; 
 
 if sum(mask)==0
-    C_xy = nan;
+    e = nan;
     r = nan;
 else
-    C_xy = median(D_xy(mask), 'omitnan').*median(r_(mask), 'omitnan')^(-2/3);
+    e = -4/5.*median(D_xxy(mask), 'omitnan').*median(r_(mask), 'omitnan')^(-1);
 end
-
-%if or(ind==1, ind==pnts)
-%    C_xy = nan;
-%    r = nan;
-%else
-%    C_xy = mean(C_xy_(ind-1:ind+1));
-%    r = r_(ind);
-%end
-% % % 
-% % % %Find r/z = sep
-% % % [~, ind] = min(abs(r./z-sep));
-% % % 
-% % % rVec = r(ind-r_diff:ind+r_diff);
-% % % 
-% % % rVec = rVec(rVec>0);
-% % % for qq=1:length(rVec)
-% % %     r_ = qq;
-% % %     
-% % %     if isnan(r_)
-% % %         C_xy(qq) = nan;
-% % %     end
-% % %     if flag
-% % %         C_xy(qq) = D_xy(r_)*((r_/freq)*U)^(-2/3);
-% % %     else
-% % %         C_xy(qq) = D_xy(r_)*((r_/freq))^(-2/3);
-% % %     end
-% % % end

@@ -26,11 +26,13 @@ if isfield(sensorInfo, 'u')
         cntr2 = pnts;
         for qq=1:length(data{TableNum})/pnts
 
-            if ii==1
-                colIndStart = 1;
-            else
-                colIndStart = colInd;
-                
+            if qq==1
+                if ii==1
+                    colIndStart = 1;
+                else
+                    colIndStart = colInd;
+
+                end
             end
             colInd = colIndStart;
             
@@ -66,6 +68,43 @@ if isfield(sensorInfo, 'u')
 
             % Sonic temperature
             if isfield(sensorInfo, 'Tson')
+		%Velocity Components
+                % Streamwise
+                X = data{TableNum}(cntr1:cntr2, sensorInfo.u(ii, 2));
+                Y = data{TableNum}(cntr1:cntr2, sensorInfo.u(ii, 2));
+                [Flag(qq, colInd), ~] = ...
+                    Stationarity(X, Y, M);
+                
+                % Add information to header
+                if qq==1
+                    StationarityHeader = [StationarityHeader, {'u Flag'; num2str(sensorInfo.u(ii, 3))}];
+                end
+                colInd = colInd + 1;
+                
+                % Spanwise
+                X = data{TableNum}(cntr1:cntr2, sensorInfo.v(ii, 2));
+                Y = data{TableNum}(cntr1:cntr2, sensorInfo.v(ii, 2));
+                [Flag(qq, colInd), ~] = ...
+                    Stationarity(X, Y, M);
+                
+                % Add information to header
+                if qq==1
+                    StationarityHeader = [StationarityHeader, {'v Flag'; num2str(sensorInfo.v(ii, 3))}];
+                end
+                colInd = colInd + 1;
+                
+                % Vertical
+                X = data{TableNum}(cntr1:cntr2, sensorInfo.w(ii, 2));
+                Y = data{TableNum}(cntr1:cntr2, sensorInfo.w(ii, 2));
+                [Flag(qq, colInd), ~] = ...
+                    Stationarity(X, Y, M);
+                
+                % Add information to header
+                if qq==1
+                    StationarityHeader = [StationarityHeader, {'w Flag'; num2str(sensorInfo.w(ii, 3))}];
+                end
+                colInd = colInd + 1;
+
                 % Temperature
                 X = data{TableNum}(cntr1:cntr2, sensorInfo.Tson(ii, 2));
                 Y = data{TableNum}(cntr1:cntr2, sensorInfo.Tson(ii, 2));
@@ -95,28 +134,32 @@ if isfield(sensorInfo, 'u')
             if isfield(sensorInfo, 'irgaH2O')
                 checkHeight = find(sensorInfo.irgaH2O(:, 3)==sonHeight);
                 
-                % Moisture
-                X = data{TableNum}(cntr1:cntr2, sensorInfo.irgaH2O(checkHeight, 2));
-                Y = data{TableNum}(cntr1:cntr2, sensorInfo.irgaH2O(checkHeight, 2));
-                [Flag(qq, colInd), ~] = ...
-                    Stationarity(X, Y, M);
-                
-                % Add information to header
-                if qq==1
-                    StationarityHeader = [StationarityHeader, {'H2O Flag'; num2str(sensorInfo.irgaH2O(checkHeight, 3))}];
-                end
-                
-                colInd = colInd + 1;
-                
-                % Latent Heat Flux
-                X = rotatedSonicData(cntr1:cntr2, 3*ii);
-                Y = data{TableNum}(cntr1:cntr2, sensorInfo.irgaH2O(checkHeight, 2));
-                [Flag(qq, colInd), ~] = ...
-                    Stationarity(X, Y, M);
+                if ~isempty(checkHeight)
+                    % Moisture
+                    X = data{TableNum}(cntr1:cntr2, sensorInfo.irgaH2O(checkHeight, 2));
+                    Y = data{TableNum}(cntr1:cntr2, sensorInfo.irgaH2O(checkHeight, 2));
+                    [Flag(qq, colInd), ~] = ...
+                        Stationarity(X, Y, M);
 
-                % Add information to header
-                if qq==1
-                    StationarityHeader = [StationarityHeader, {'w''q'' Flag'; num2str(sensorInfo.irgaH2O(checkHeight, 3))}];                
+                    % Add information to header
+                    if qq==1
+                        StationarityHeader = [StationarityHeader, {'H2O Flag'; num2str(sensorInfo.irgaH2O(checkHeight, 3))}];
+                    end
+
+                    colInd = colInd + 1;
+
+                    % Latent Heat Flux
+                    X = rotatedSonicData(cntr1:cntr2, 3*ii);
+                    Y = data{TableNum}(cntr1:cntr2, sensorInfo.irgaH2O(checkHeight, 2));
+                    [Flag(qq, colInd), ~] = ...
+                        Stationarity(X, Y, M);
+
+                    % Add information to header
+                    if qq==1
+                        StationarityHeader = [StationarityHeader, {'w''q'' Flag'; num2str(sensorInfo.irgaH2O(checkHeight, 3))}];                
+                    end
+                    
+                    colInd = colInd + 1;
                 end
             end
 
