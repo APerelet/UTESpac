@@ -30,6 +30,7 @@ if isempty(headers)
 end
 
 % iterate through headers and store .csv files in csvFileStruct
+firstTable = 1;
 for ii = 1:length(headers)
     currentHeaderFileName = headers(ii).name;
     
@@ -145,6 +146,10 @@ for ii = 1:length(headers)
     end
     tableFiles = tableFiles(nameFlag);
     
+    if isempty(tableFiles)
+        error(['Could not find files associated with table:',tableName, char(10),...
+            char(9), 'Please ensure regular expression defined in info.FileForm is correct', char(10)]);
+    end
     
     % sort and store csv files in csvFilesCell
     csvFiles = cell(length(tableFiles),1);  %preallocate for speed
@@ -196,7 +201,7 @@ for ii = 1:length(headers)
     ind(end+1) = length(csvDates);
     
     % place csv files in cell matrix where the row is determined by the date
-    if ii == 1
+    if firstTable == 1
         dateBegin = floor(min(csvDates)-20); % all tables must begin and end within 20 days of first and last dates of table1
         dateEnd = floor(max(csvDates)+20);
 % % %         if length(ind)==2
@@ -204,6 +209,7 @@ for ii = 1:length(headers)
 % % %         else
             dataFiles = cell(dateEnd-dateBegin,length(headers), round(max(diff(ind))/10)*10);
 % % %         end
+        firstTable = 0;
     end
     
     % Check if there are files with outlier date stamps

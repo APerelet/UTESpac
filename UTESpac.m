@@ -53,15 +53,20 @@
 % UTESpac.zip
 %% ----------------------------------------------INFORMATION------------------------------------------------------------
 
-close all; clearvars; clc;
+%close all;
+clearvars; clc;
+dbstop if error
 warning off backtrace
+addpath(genpath('/uufs/chpc.utah.edu/common/home/u0944063/MatlabCode'));
 
 % current UTESpac Version
 info.UTESpacVersion = '5.2';
 
 % enter root folder where site* folders are located
 %info.rootFolder = '/uufs/chpc.utah.edu/common/home/IPAQS-group1/IPAQS19/Travis_Scratch/Data/Sonic_Array';
-info.rootFolder = '/Users/alexeiperelet_mac/Downloads';
+%info.rootFolder = '/Users/alexeiperelet_mac/Google Drive/UofU/Research/Experiments/Oregon_Vineyard/Data/EC_Towers';
+%info.rootFolder = '/scratch/general/lustre/u0944063/MATERHORN_SPRING';
+info.rootFolder = '/uufs/chpc.utah.edu/common/home/u0944063/Travis_Test';
 
 % folder structure between site folder and CSV files
 % Example
@@ -74,16 +79,18 @@ info.foldStruct = '';
 % fields of <Year>, <Month>, <Day> are required
 % <TableName> must match what is specified in siteinfo.m 
 info.FileForm = 'CSV_(?<serial>\d+)[.](?<TableName>\w*)_\d+_(?<Year>\d{4})_(?<Month>\d{2})_(?<Day>\d{2})_(?<Hour>\d{2})(?<Minute>\d{2}).dat';
+%info.FileForm = 'CSV_\w*[.]_?(?<TableName>\w*)_(?<Year>\d{4})_(?<Month>\d{2})_(?<Day>\d{2})_(?<Hour>\d{2})(?<Minute>\d{2}).dat';
+
 
 % enter averaging period in minutes.  Must yield an integer when dividied into 60 (e.g. 1, 2, 5, 10, 20, 30)
-info.avgPer = 5;
+info.avgPer = 30;
 
 % save QC'd raw tables (1 = yes, 0 = no)
-info.saveRawConditionedData = false;
+info.saveRawConditionedData = true;
 
 % save structure parameters and structure functions for temperature and humidity
-info.saveStructParams = false;
-info.saveStructFunc = false;
+info.saveStructParams = true;
+info.saveStructFunc = true;
 
 % Separation to use for calculating structure parameters. 0.5 is upper
 % limit of power law range
@@ -98,6 +105,12 @@ info.saveCSV = false;
 
 % enter detrending format ('constant' or 'linear')
 info.detrendingFormat = 'linear';
+
+% number of levels for wavelet decomposition
+%%%%%%%%%%%
+% NEED TO ADD CHECKS TO THIS STILL. 12 works for 5+ min avg
+%%%%%%%%%%%
+info.WaveletLevels = 12;
 
 % select 'local' or 'global' planar fit, 'local' computes coeffiecients from local file only, 'global' computes
 % user-defined, multi-sector, multi-datebin coefficients from all site data - the sector and datebins are defined
@@ -172,12 +185,12 @@ info.diagnosticTest.meanLiGasDiagnosticLimit = 220;  % Full strength is 255, les
 template.u = 'Ux_*'; % sonic u  --   [m/s]
 template.v = 'Uy_*'; % sonic v  --   [m/s]
 template.w = 'Uz_*'; % sonic w  --   [m/s]
-template.Tson = 'Ts_*'; % sonic T  --   [C or K]
-template.sonDiagnostic = 'diag_sonic_*'; % sonic diagnostic  --  [-]
-template.fw = 'fw_*'; % sonic finewires to be used for Eddy Covariance  --  [C]
-template.RH = 'HMP_RH_*'; % slow response relative humidity for virtual temperature calculation  --  [Fract or %]
-template.T = 'HMP_T_*'; % slow response temperature  --  [C]
-template.P = 'pressure_*'; % pressure  --  [kPa or mBar]
+template.Tson = 'TSonic_*'; % sonic T  --   [C or K]
+template.sonDiagnostic = 'diagnostic*'; % sonic diagnostic  --  [-]
+template.fw = 'T_fw_*'; % sonic finewires to be used for Eddy Covariance  --  [C]
+template.RH = 'RH_*'; % slow response relative humidity for virtual temperature calculation  --  [Fract or %]
+template.T = 'Temp_*'; % slow response temperature  --  [C]
+template.P = 'Pressure_*'; % pressure  --  [kPa or mBar]
 template.irgaH2O = 'H2O_*'; % for use with Campbell EC150 and IRGASON.  WPL corrections applied  --  [g/m^3]
 template.irgaH2OsigStrength = 'H2OSig_*'; % EC150 Signal Strength  --  [-]
 template.irgaCO2 = 'CO2_*'; % for use with Campbell EC150 and IRGASON.  WPL corrections applied  --  [mg/m^3]
@@ -238,8 +251,8 @@ for i = 1:numFiles
         %%%%%%%%%%%%%%%%%%
         %WORK IN PROGRESS
         %%%%%%%%%%%%%%%%%%
-% % %         % Check stationarity of turbulent signals
-% % %         [output] = StationarityWrap(data, rotatedSonicData, info, output, sensorInfo, tableNames);
+        % Check stationarity of turbulent signals
+        [output] = StationarityWrap(data, rotatedSonicData, info, output, sensorInfo, tableNames);
         %%%%%%%%%%%%%%%%%%
         %WORK IN PROGRESS
         %%%%%%%%%%%%%%%%%%
