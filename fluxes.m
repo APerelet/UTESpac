@@ -908,11 +908,15 @@ end
                 T0_L = Tref_Kavg(jj);
                 uStarCubed = tau(jj,3+(ii-1)*3).^(3/2); % sqrt(uPF'*wPF')
                 H0_L = H(jj,5+(ii-1)*12); % wPF'.*Tson'
+                H0_fw_L = H(jj,9+(ii-1)*12); % wPF'.*Tfw'
                 
                 L(jj,2+(ii-1)) = -uStarCubed/(kappa*g/T0_L*H0_L);
+                L(jj,3+(ii-1)) = -uStarCubed/(kappa*g/T0_L*H0_fw_L);
                 Lheader{2+(ii-1)} = strcat(num2str(sonHeight),'m L:sqrt(uPF''wPF'')^3/2*T_S/(k*g*wPF''Ts'')');
+                Lheader{3+(ii-1)} = strcat(num2str(sonHeight),'m L:sqrt(uPF''wPF'')^3/2*T_S/(k*g*wPF''Tfw'')');
                 if rotatedSonFlag(jj)||TsonFlag(jj)
                     L(jj,2+(ii-1)) = nan;
+                    L(jj,3+(ii-1)) = nan;
                 end
                 
                 % LATENT HEAT FLUX
