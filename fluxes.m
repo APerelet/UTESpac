@@ -191,6 +191,7 @@ end
             % initialize flux matrices
             H = nan(N,1);  % kinematic sensible heat flux
             Hlat = nan(N,1); % kinematic sensible, lateral heat flux
+            RStress = nan(N, 1); %Reynolds stress tensor components
             tau = nan(N,1); % momentum flux
             tke = nan(N,1); % turbulent kinetic energy
             LHflux = nan(N,1); % latent heat flux
@@ -254,6 +255,7 @@ end
             Hheader = cell(1);
             HlatHeader = cell(1);
             tauHeader = cell(1);
+            RStressHeader = cell(1);
             tkeHeader = cell(1);
             LHfluxHeader = cell(1);
             CO2fluxHeader = cell(1);
@@ -507,6 +509,7 @@ end
                     H(jj,1) = t(bp(jj+1));
                     Hlat(jj,1) = t(bp(jj+1));
                     tau(jj,1) = t(bp(jj+1));
+                    RStress(jj, 1) = t(bp(jj+1));
                     tke(jj,1) = t(bp(jj+1));
                     LHflux(jj,1) = t(bp(jj+1));
                     CO2flux(jj,1) = t(bp(jj+1));
@@ -518,6 +521,7 @@ end
                         Hheader{1} = 'time';
                         HlatHeader{1} = 'time';
                         tauHeader{1} = 'time';
+                        RStressHeader{1} = 'time';
                         tkeHeader{1} = 'time';
                         derivedTheader{1} = 'time';
                         LHfluxHeader{1} = 'time';
@@ -874,25 +878,47 @@ end
                         end
                     end
                 end
+
+                % REYNOLDS STRESS TENSOR
+                cntr1 = 1;
+                cntr2 = 1;
+                RStress_tmp = nan(1, 6);
+                for qq = cntr1:3
+                    for ww = cntr1:3
+                        RStress_tmp(cntr2) = mean(uPF_P(:, qq).*uPF_P(:, ww), 'omitnan');
+                        cntr1 = cntr1+1;
+                        cntr2 = cntr2+1;
+                    end
+                end
+                RStress(jj, 2+(ii-1)*6:2+(ii-1)*6+5) = RStress_tmp;
+                RStressHeader(2+(ii-1)*6:2+(ii-1)*6+5) = {[num2str(sonHeight), 'm :u''u'''], ...
+                    [num2str(sonHeight), 'm :u''v'''],...
+                    [num2str(sonHeight), 'm :u''w'''],...
+                    [num2str(sonHeight), 'm :v''v'''],...
+                    [num2str(sonHeight), 'm :v''w'''],...
+                    [num2str(sonHeight), 'm :w''w''']};
+                if rotatedSonFlag(jj)
+                    RStress(jj, 2+(ii-1)*6:2+(ii-1)*6+5) = nan(1, 6);
+                end
                 
                 % MOMENTUM FLUX
                 tau(jj,2+(ii-1)*3) = sqrt(nanmean(uP(:, 1).*uP(:, 3))^2+nanmean(uP(:, 2).*uP(:, 3))^2);
                 tauHeader{2+(ii-1)*3} = strcat(num2str(sonHeight),'m :sqrt(u''w''^2+v''w''^2)');
                 if rotatedSonFlag(jj)
-                    tau(jj,2+(ii-1)*3) = nan;
+                    tau(jj,2+(ii-1)*2) = nan;
                 end
                 
                 tau(jj,3+(ii-1)*3) = sqrt(nanmean(uPF_P(:,1).*uPF_P(:,3))^2+nanmean(uPF_P(:,2).*uPF_P(:,3))^2);
                 tauHeader{3+(ii-1)*3} = strcat(num2str(sonHeight),'m :sqrt(uPF''wPF''^2+vPF''wPF''^2)');
                 if rotatedSonFlag(jj)
-                    tau(jj,3+(ii-1)*3) = nan;
+                    tau(jj,3+(ii-1)*2) = nan;
                 end
                 
-                tau(jj,4+(ii-1)*3) = nanmean(uPF_P(:,1).*uPF_P(:,3));
-                tauHeader{4+(ii-1)*3} = strcat(num2str(sonHeight),'m :uPF''wPF''');
-                if rotatedSonFlag(jj)
-                    tau(jj,4+(ii-1)*3) = nan;
-                end
+% % %                 tau(jj,4+(ii-1)*3) = nanmean(uPF_P(:,1).*uPF_P(:,3));
+% % %                 tauHeader{4+(ii-1)*3} = strcat(num2str(sonHeight),'m :uPF''wPF''');
+% % %                 if rotatedSonFlag(jj)
+% % %                     tau(jj,4+(ii-1)*3) = nan;
+% % %                 end
                 
                 % TKE
                 tke(jj,1+ii) = 1/2*(nanmean(uP(:,1).^2)+nanmean(uP(:,2).^2)+nanmean(uP(:,3).^2));
@@ -910,10 +936,10 @@ end
                 H0_L = H(jj,5+(ii-1)*12); % wPF'.*Tson'
                 H0_fw_L = H(jj,9+(ii-1)*12); % wPF'.*Tfw'
                 
-                L(jj,2+(ii-1)) = -uStarCubed/(kappa*g/T0_L*H0_L);
-                L(jj,3+(ii-1)) = -uStarCubed/(kappa*g/T0_L*H0_fw_L);
-                Lheader{2+(ii-1)} = strcat(num2str(sonHeight),'m L:sqrt(uPF''wPF'')^3/2*T_S/(k*g*wPF''Ts'')');
-                Lheader{3+(ii-1)} = strcat(num2str(sonHeight),'m L:sqrt(uPF''wPF'')^3/2*T_S/(k*g*wPF''Tfw'')');
+                L(jj,2+(ii-1)*2) = -uStarCubed/(kappa*g/T0_L*H0_L);
+                L(jj,3+(ii-1)*2) = -uStarCubed/(kappa*g/T0_L*H0_fw_L);
+                Lheader{2+(ii-1)*2} = strcat(num2str(sonHeight),'m L:sqrt(uPF''wPF'')^3/2*T_S/(k*g*wPF''Ts'')');
+                Lheader{3+(ii-1)*2} = strcat(num2str(sonHeight),'m L:sqrt(uPF''wPF'')^3/2*T_S/(k*g*wPF''Tfw'')');
                 if rotatedSonFlag(jj)||TsonFlag(jj)
                     L(jj,2+(ii-1)) = nan;
                     L(jj,3+(ii-1)) = nan;
@@ -1117,6 +1143,10 @@ end
     flag = logical(any(L,1)+isnan(L(1,:)));
     output.L = L(:,flag);
     output.Lheader = Lheader(flag);
+
+    flag = logical(any(RStress,1)+isnan(RStress(1,:)));
+    output.ReynoldStress = RStress;
+    output.ReynoldsStressHeader = RStressHeader;
     
     if size(derivedT,2) > 1
         flag = logical(any(derivedT,1)+isnan(derivedT(1,:)));
