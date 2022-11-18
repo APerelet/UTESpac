@@ -548,9 +548,34 @@ end
                 for rr = 1:3
                     tmp = u(bp(jj)+1:bp(jj+1), rr);
                     tmpPF = uPF(bp(jj)+1:bp(jj+1), rr);
-                    nanCheck = [find(isnan(tmp)); find(isnan(tmpPF))];
+
+                    tmpLen = length(tmp);
+
+                    nanCheck = find(isnan(tmpPF));
                     if ~isempty(nanCheck)
-                        if length(nanCheck)/2<0.25*length(tmp)
+                        if length(nanCheck)<0.25*length(tmpPF)
+                            % Run wavelet decomposition on data that does not
+                            % include leading/trailing nans
+                            if nanCheck(1)==1
+                                dataStart = nanCheck(find(~(diff(nanCheck)==1), 1));
+                                if isempty(dataStart)
+                                    dataStart = nanCheck(end);
+                                end
+                            else
+                                dataStart = 1;
+                            end
+                            if nanCheck(end) == length(tmpPF)
+                                dataEnd = nanCheck(find(~(diff(nanCheck)==1), 1, 'last')+1);
+                                if isempty(dataEnd)
+                                    dataEnd = nanCheck(1);
+                                end
+                            else
+                                dataEnd = length(tmpPF);
+                            end
+                            tmp = tmp(dataStart:dataEnd);
+                            tmpPF = tmpPF(dataStart:dataEnd);
+
+
                             tmp = inpaint_nans(tmp, 0);
                             tmpPF = inpaint_nans(tmpPF, 0);
                             nanFlag = 0;
@@ -559,13 +584,16 @@ end
                         end
                     else
                         nanFlag= 0;
+                        dataStart = 1;
+                        dataEnd = length(tmp);
                     end
                     
                     if ~nanFlag
                         % UNROTATED
                         [coef,l] = wavedec(tmp, info.WaveletLevels, 'sym8'); 
                         coef(1:l(1)) = 0;
-                        uP(:, rr) = waverec(coef, l, 'sym8');
+                        uP_ = waverec(coef, l, 'sym8');
+                        uP(:, rr) = [nan.*ones(dataStart-1, 1); uP_; nan.*ones(tmpLen-dataEnd, 1)];
                         
                         % ROTATED
                         [coef,l] = wavedec(tmpPF, info.WaveletLevels, 'sym8'); 
@@ -577,10 +605,11 @@ end
 % % %                             plotScalogram_UTESPacDebug(length(tmpPF), coef, l, ['$',velNames{rr}, '_{PF}$ @', num2str(sonHeight), ' m'], saveDir, fileName, 20, info.WaveletLevels)
 % % %                         end
 % % %                         %%% DEBUG DONE
-                        WaveletCoef.cD.([velNames{rr}, 'PF_', replace(num2str(sonHeight), '.', '_')])(jj, :) = [t(bp(jj+1)), coef'];
-                        WaveletCoef.l.([velNames{rr}, 'PF_', replace(num2str(sonHeight), '.', '_')])(jj, :) = [t(bp(jj+1)), l'];
+                        WaveletCoef.cD.([velNames{rr}, 'PF_', replace(num2str(sonHeight), '.', '_')]){jj} = [t(bp(jj+1)), coef'];
+                        WaveletCoef.l.([velNames{rr}, 'PF_', replace(num2str(sonHeight), '.', '_')]){jj} = [t(bp(jj+1)), l'];
                         coef(1:l(1)) = 0;
-                        uPF_P(:, rr) = waverec(coef, l, 'sym8');
+                        uPF_P_ = waverec(coef, l, 'sym8');
+                        uPF_P(:, rr) = [nan.*ones(dataStart-1, 1); uPF_P_; nan.*ones(tmpLen-dataEnd, 1)];
                     else
                         uP(:, rr) = nan.*ones(size(tmp));
                         uPF_P(:, rr) = nan.*ones(size(tmp));
@@ -591,10 +620,34 @@ end
                 tmpTson = Tson(bp(jj)+1:bp(jj+1));
                 tmpthetaSonAir = thetaSonAir(bp(jj)+1:bp(jj+1));
                 tmpthetaSon = thetaSon(bp(jj)+1:bp(jj+1));
-                
-                nanCheck = [find(isnan(tmpTson)); find(isnan(tmpthetaSonAir)); find(isnan(tmpthetaSon))];
+
+                tmpLen = length(tmpTson);
+
+                nanCheck = find(isnan(tmpTson));
                 if ~isempty(nanCheck)
-                    if length(nanCheck)/3<0.25*length(tmpTson)
+                    if length(nanCheck)<0.25*length(tmpTson)
+                        % Run wavelet decomposition on data that does not
+                        % include leading/trailing nans
+                        if nanCheck(1)==1
+                            dataStart = nanCheck(find(~(diff(nanCheck)==1), 1));
+                            if isempty(dataStart)
+                                dataStart = nanCheck(end);
+                            end
+                        else
+                            dataStart = 1;
+                        end
+                        if nanCheck(end) == length(tmpTson)
+                            dataEnd = nanCheck(find(~(diff(nanCheck)==1), 1, 'last')+1);
+                            if isempty(dataEnd)
+                                dataEnd = nanCheck(1);
+                            end
+                        else
+                            dataEnd = length(tmpTson);
+                        end
+                        tmpTson = tmpTson(dataStart:dataEnd);
+                        tmpthetaSonAir = tmpthetaSonAir(dataStart:dataEnd);
+                        tmpthetaSon = tmpthetaSon(dataStart:dataEnd);
+
                         tmpTson = inpaint_nans(tmpTson, 0);
                         tmpthetaSonAir = inpaint_nans(tmpthetaSonAir, 0);
                         tmpthetaSon = inpaint_nans(tmpthetaSon, 0);
@@ -604,23 +657,29 @@ end
                     end
                 else
                     nanFlag= 0;
+                    dataStart = 1;
+                    dataEnd = length(tmpTson);
                 end
                 
                 if ~nanFlag
                     [coef,l] = wavedec(tmpTson, info.WaveletLevels, 'sym8'); 
-                    WaveletCoef.cD.(['Tson_', replace(num2str(sonHeight), '.', '_')])(jj, :)	= [t(bp(jj+1)), coef'];	 
-       	       	    WaveletCoef.l.(['Tson_', replace(num2str(sonHeight), '.', '_')])(jj, :) = [t(bp(jj+1)), l'];
+                    WaveletCoef.cD.(['Tson_', replace(num2str(sonHeight), '.', '_')]){jj}	= [t(bp(jj+1)), coef'];	 
+       	       	    WaveletCoef.l.(['Tson_', replace(num2str(sonHeight), '.', '_')]){jj} = [t(bp(jj+1)), l'];
 
                     coef(1:l(1)) = 0;
-                    TsonP = waverec(coef, l, 'sym8');
+                    TsonP_ = waverec(coef, l, 'sym8');
+                    TsonP = [nan.*ones(dataStart-1, 1); TsonP_; nan.*ones(tmpLen-dataEnd, 1)];
                     
                     [coef,l] = wavedec(tmpthetaSonAir, info.WaveletLevels, 'sym8'); 
                     coef(1:l(1)) = 0;
-                    thetaSonAirP = waverec(coef, l, 'sym8');
+                    thetaSonAirP_ = waverec(coef, l, 'sym8');
+                    thetaSonAirP = [nan.*ones(dataStart-1, 1); thetaSonAirP_; nan.*ones(tmpLen-dataEnd, 1)];
                     
                     [coef,l] = wavedec(tmpthetaSon, info.WaveletLevels, 'sym8'); 
                     coef(1:l(1)) = 0;
-                    thetaSonP = waverec(coef, l, 'sym8');
+                    thetaSonP_ = waverec(coef, l, 'sym8');
+                    thetaSonP = [nan.*ones(dataStart-1, 1); thetaSonP_; nan.*ones(tmpLen-dataEnd, 1)];
+
                 else
                     TsonP = nan.*ones(size(tmpTson));
                     thetaSonAirP = nan.*ones(size(tmpthetaSonAir));
@@ -632,10 +691,33 @@ end
                     tmpfw = fw(bp(jj)+1:bp(jj+1));
                     tmpthetaFw = thetaFw(bp(jj)+1:bp(jj+1));
                     tmpVthetaFw = VthetaFw(bp(jj)+1:bp(jj+1));
-                    
-                    nanCheck = [find(isnan(tmpfw)); find(isnan(tmpthetaFw)); find(isnan(tmpVthetaFw))];
+                    tmpLen = length(tmpfw);
+
+                    nanCheck = find(isnan(tmpfw));
                     if ~isempty(nanCheck)                 
-                        if length(nanCheck)/3<0.25*length(tmpfw)
+                        if length(nanCheck)<0.25*length(tmpfw)
+                            % Run wavelet decomposition on data that does not
+                            % include leading/trailing nans
+                            if nanCheck(1)==1
+                                dataStart = nanCheck(find(~(diff(nanCheck)==1), 1));
+                                if isempty(dataStart)
+                                    dataStart = nanCheck(end);
+                                end
+                            else
+                                dataStart = 1;
+                            end
+                            if nanCheck(end) == length(tmpfw)
+                                dataEnd = nanCheck(find(~(diff(nanCheck)==1), 1, 'last')+1);
+                                if isempty(dataEnd)
+                                    dataEnd = nanCheck(1);
+                                end
+                            else
+                                dataEnd = length(tmpfw);
+                            end
+                            tmpfw = tmpfw(dataStart:dataEnd);
+                            tmpthetaFw = tmpthetaFw(dataStart:dataEnd);
+                            tmpVthetaFw = tmpVthetaFw(dataStart:dataEnd);
+
                             tmpfw = inpaint_nans(tmpfw, 0);
                             tmpthetaFw = inpaint_nans(tmpthetaFw, 0);
                             tmpVthetaFw = inpaint_nans(tmpVthetaFw, 0);
@@ -645,6 +727,8 @@ end
                         end
                     else
                         nanFlag = 0;
+                        dataStart = 1;
+                        dataEnd = length(tmpfw);
                     end
                     
                     if ~nanFlag
@@ -657,18 +741,21 @@ end
 % % %                             plotScalogram_UTESPacDebug(length(tmpfw), coef, l, ['fw @ ', num2str(sonHeight), ' m'], saveDir, fileName, 20, info.WaveletLevels)
 % % %                         end
 % % %                         %%% DEBUG DONE
-                        WaveletCoef.cD.(['fw_', replace(num2str(sonHeight), '.', '_')])(jj, :)    = [t(bp(jj+1)), coef'];
-                        WaveletCoef.l.(['fw_', replace(num2str(sonHeight), '.', '_')])(jj, :) = [t(bp(jj+1)), l'];
+                        WaveletCoef.cD.(['fw_', replace(num2str(sonHeight), '.', '_')]){jj}    = [t(bp(jj+1)), coef'];
+                        WaveletCoef.l.(['fw_', replace(num2str(sonHeight), '.', '_')]){jj} = [t(bp(jj+1)), l'];
                         coef(1:l(1)) = 0;
-                        fwP = waverec(coef, l, 'sym8');
+                        fwP_ = waverec(coef, l, 'sym8');
+                        fwP = [nan.*ones(dataStart-1, 1); fwP_; nan.*ones(tmpLen-dataEnd, 1)];
                         
                         [coef,l] = wavedec(tmpthetaFw, info.WaveletLevels, 'sym8'); 
                         coef(1:l(1)) = 0;
-                        thetaFwP = waverec(coef, l, 'sym8');
+                        thetaFwP_ = waverec(coef, l, 'sym8');
+                        thetaFwP = [nan.*ones(dataStart-1, 1); thetaFwP_; nan.*ones(tmpLen-dataEnd, 1)];
                         
                         [coef,l] = wavedec(tmpVthetaFw, info.WaveletLevels, 'sym8'); 
                         coef(1:l(1)) = 0;
-                        VthetaFwP = waverec(coef, l, 'sym8');
+                        VthetaFwP_ = waverec(coef, l, 'sym8');
+                        VthetaFwP = [nan.*ones(dataStart-1, 1); VthetaFwP_; nan.*ones(tmpLen-dataEnd, 1)];
                     else
                         fwP = nan.*ones(size(tmpfw));
                         thetaFwP = nan.*ones(size(tmpthetaFw));
@@ -886,30 +973,30 @@ end
                 for qq = cntr1:3
                     for ww = cntr1:3
                         RStress_tmp(cntr2) = mean(uPF_P(:, qq).*uPF_P(:, ww), 'omitnan');
-                        cntr1 = cntr1+1;
                         cntr2 = cntr2+1;
                     end
+                    cntr1 = cntr1+1;
                 end
                 RStress(jj, 2+(ii-1)*6:2+(ii-1)*6+5) = RStress_tmp;
-                RStressHeader(2+(ii-1)*6:2+(ii-1)*6+5) = {[num2str(sonHeight), 'm :u''u'''], ...
-                    [num2str(sonHeight), 'm :u''v'''],...
-                    [num2str(sonHeight), 'm :u''w'''],...
-                    [num2str(sonHeight), 'm :v''v'''],...
-                    [num2str(sonHeight), 'm :v''w'''],...
-                    [num2str(sonHeight), 'm :w''w''']};
+                RStressHeader(2+(ii-1)*6:2+(ii-1)*6+5) = {[num2str(sonHeight), 'm :uPF''uPF'''], ...
+                    [num2str(sonHeight), 'm :uPF''vPF'''],...
+                    [num2str(sonHeight), 'm :uPF''wPF'''],...
+                    [num2str(sonHeight), 'm :vPF''vPF'''],...
+                    [num2str(sonHeight), 'm :vPF''wPF'''],...
+                    [num2str(sonHeight), 'm :wPF''wPF''']};
                 if rotatedSonFlag(jj)
                     RStress(jj, 2+(ii-1)*6:2+(ii-1)*6+5) = nan(1, 6);
                 end
                 
                 % MOMENTUM FLUX
-                tau(jj,2+(ii-1)*3) = sqrt(nanmean(uP(:, 1).*uP(:, 3))^2+nanmean(uP(:, 2).*uP(:, 3))^2);
-                tauHeader{2+(ii-1)*3} = strcat(num2str(sonHeight),'m :sqrt(u''w''^2+v''w''^2)');
+                tau(jj,2+(ii-1)*2) = sqrt(nanmean(uP(:, 1).*uP(:, 3))^2+nanmean(uP(:, 2).*uP(:, 3))^2);
+                tauHeader{2+(ii-1)*2} = strcat(num2str(sonHeight),'m :sqrt(u''w''^2+v''w''^2)');
                 if rotatedSonFlag(jj)
                     tau(jj,2+(ii-1)*2) = nan;
                 end
                 
-                tau(jj,3+(ii-1)*3) = sqrt(nanmean(uPF_P(:,1).*uPF_P(:,3))^2+nanmean(uPF_P(:,2).*uPF_P(:,3))^2);
-                tauHeader{3+(ii-1)*3} = strcat(num2str(sonHeight),'m :sqrt(uPF''wPF''^2+vPF''wPF''^2)');
+                tau(jj,3+(ii-1)*2) = sqrt(nanmean(uPF_P(:,1).*uPF_P(:,3))^2+nanmean(uPF_P(:,2).*uPF_P(:,3))^2);
+                tauHeader{3+(ii-1)*2} = strcat(num2str(sonHeight),'m :sqrt(uPF''wPF''^2+vPF''wPF''^2)');
                 if rotatedSonFlag(jj)
                     tau(jj,3+(ii-1)*2) = nan;
                 end
@@ -932,8 +1019,9 @@ end
                 g = 9.81;
                 % T0_L = nanmedian(Tson(bp(j)+1:bp(j+1))) + 273.15; % Tson in K
                 T0_L = Tref_Kavg(jj);
-                uStarCubed = tau(jj,3+(ii-1)*3).^(3/2); % sqrt(uPF'*wPF')
-                H0_L = H(jj,5+(ii-1)*12); % wPF'.*Tson'
+                % uStarCubed = sqrt(RStress(jj, 2+(ii-1)*6+2)).^3; % sqrt(uPF'*wPF') %tau(jj,3+(ii-1)*3).^(3/2); % sqrt(uPF'*wPF')
+                uStarCubed = tau(jj, 3+(ii-1)*2).^(3/2);
+		H0_L = H(jj,5+(ii-1)*12); % wPF'.*Tson'
                 H0_fw_L = H(jj,9+(ii-1)*12); % wPF'.*Tfw'
                 
                 L(jj,2+(ii-1)*2) = -uStarCubed/(kappa*g/T0_L*H0_L);
@@ -978,11 +1066,32 @@ end
                     
                     % find H2O pertubations in g/m^3
                     tmpH2O = rho_v(bp(jj)+1:bp(jj+1)); %(g/m^3)
+                    tmpLen = length(tmpH2O);
                     
                     % Check for nans
                     nanCheck = find(isnan(tmpH2O));
                     if ~isempty(nanCheck)
                         if length(nanCheck)<0.25*length(tmpH2O)
+                            % Run wavelet decomposition on data that does not
+                            % include leading/trailing nans
+                            if nanCheck(1)==1
+                                dataStart = nanCheck(find(~(diff(nanCheck)==1), 1));
+                                if isempty(dataStart)
+                                    dataStart = nanCheck(end);
+                                end
+                            else
+                                dataStart = 1;
+                            end
+                            if nanCheck(end) == length(tmpH2O)
+                                dataEnd = nanCheck(find(~(diff(nanCheck)==1), 1, 'last')+1);
+                                if isempty(dataEnd)
+                                    dataEnd = nanCheck(1);
+                                end
+                            else
+                                dataEnd = length(tmpH2O);
+                            end
+                            tmpH2O = tmpH2O(dataStart:dataEnd);
+
                             tmpH2O = inpaint_nans(tmpH2O, 0);
                             nanFlag = 0;
                         else
@@ -990,15 +1099,18 @@ end
                         end
                     else
                         nanFlag = 0;
+                        dataStart = 1;
+                        dataEnd = length(tmpH2O);
                     end
                     
                     if ~nanFlag
                         [coef,l] = wavedec(tmpH2O, info.WaveletLevels, 'sym8'); 
-                        WaveletCoef.cD.(['H2O_', replace(num2str(sonHeight), '.', '_')])(jj, :)    = [t(bp(jj+1)), coef'];
-                        WaveletCoef.l.(['H2O_', replace(num2str(sonHeight), '.', '_')])(jj, :) = [t(bp(jj+1)), l'];
+                        WaveletCoef.cD.(['H2O_', replace(num2str(sonHeight), '.', '_')]){jj}    = [t(bp(jj+1)), coef'];
+                        WaveletCoef.l.(['H2O_', replace(num2str(sonHeight), '.', '_')]){jj} = [t(bp(jj+1)), l'];
 
                         coef(1:l(1)) = 0;
-                        H2Op = waverec(coef, l, 'sym8');
+                        H2Op_ = waverec(coef, l, 'sym8');
+                        H2Op = [nan.*ones(dataStart-1, 1); H2Op_; nan.*ones(tmpLen-dataEnd, 1)];
 
                     else
                         H2Op = nan.*ones(size(tmpH2O));
@@ -1066,28 +1178,55 @@ end
                         
                         
                         tmpCO2 = rho_CO2(bp(jj)+1:bp(jj+1))./1e6; %(kg/m^3)
-                        
+                        tmpLen = length(tmpCO2);
+
                         % Check for nans
                         nanCheck = find(isnan(tmpCO2));
                         if ~isempty(nanCheck)
                             if length(nanCheck)<0.25*length(tmpCO2)
+                                % Run wavelet decomposition on data that does not
+                                % include leading/trailing nans
+                                if nanCheck(1)==1
+                                    dataStart = nanCheck(find(~(diff(nanCheck)==1), 1));
+                                    if isempty(dataStart)
+                                        dataStart = nanCheck(end);
+                                    end
+                                else
+                                    dataStart = 1;
+                                end
+                                if nanCheck(end) == length(tmpCO2)
+                                    dataEnd = nanCheck(find(~(diff(nanCheck)==1), 1, 'last')+1);
+                                    if isempty(dataEnd)
+                                        dataEnd = nanCheck(1);
+                                    end
+                                else
+                                    dataEnd = length(tmpCO2);
+                                end
+                                tmpCO2 = tmpCO2(dataStart:dataEnd);
+
                                 tmpCO2 = inpaint_nans(tmpCO2, 0);
                                 nanFlag = 0;
                             else
                                 nanFlag = 1;
+                                dataStart = 1;
+                                dataEnd = length(tmpCO2);
                             end
                         else
                             nanFlag = 0;
+                            dataStart = 1;
+                            dataEnd = length(tmpCO2);
                         end
                         
                         if ~nanFlag
                             [coef,l] = wavedec(tmpCO2, info.WaveletLevels, 'sym8'); 
                             coef(1:l(1)) = 0;
-                            rho_CO2p = waverec(coef, l, 'sym8');
+                            rho_CO2p_ = waverec(coef, l, 'sym8');
+                            rho_CO2p = [nan.*ones(dataStart-1, 1); rho_CO2p_; nan.*ones(tmpLen-dataEnd, 1)];
                         else
                             rho_CO2p = nan.*ones(size(tmpCO2));
                         end
 
+                        tmpCO2 = [nan.*ones(dataStart-1, 1); tmpCO2; nan.*ones(tmpLen-dataEnd, 1)];
                         rho_CO2avg = mean(tmpCO2-rho_CO2p); % kg/m^3
                         evapFlux = LHflux(jj,6+(ii-1)*7)/Lv/1000; % WPL, wPF'' (kg/m^2s)
                         
@@ -1146,7 +1285,7 @@ end
 
     flag = logical(any(RStress,1)+isnan(RStress(1,:)));
     output.ReynoldStress = RStress;
-    output.ReynoldsStressHeader = RStressHeader;
+    output.ReynoldStressHeader = RStressHeader;
     
     if size(derivedT,2) > 1
         flag = logical(any(derivedT,1)+isnan(derivedT(1,:)));

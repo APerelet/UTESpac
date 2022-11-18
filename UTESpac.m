@@ -53,7 +53,7 @@
 % UTESpac.zip
 %% ----------------------------------------------INFORMATION------------------------------------------------------------
 
-%close all;
+close all;
 clearvars; clc;
 dbstop if error
 warning off backtrace
@@ -63,10 +63,7 @@ addpath(genpath('/uufs/chpc.utah.edu/common/home/u0944063/MatlabCode'));
 info.UTESpacVersion = '5.2';
 
 % enter root folder where site* folders are located
-%info.rootFolder = '/uufs/chpc.utah.edu/common/home/IPAQS-group1/IPAQS19/Travis_Scratch/Data/Sonic_Array';
-%info.rootFolder = '/Users/alexeiperelet_mac/Google Drive/UofU/Research/Experiments/Oregon_Vineyard/Data/EC_Towers';
-%info.rootFolder = '/scratch/general/lustre/u0944063/MATERHORN_SPRING';
-info.rootFolder = 'J:\Oregon_2013';
+info.rootFolder = 'F:\Alexei\Oregon_2013';
 
 % folder structure between site folder and CSV files
 % Example
@@ -83,7 +80,7 @@ info.FileForm = 'CSV_\w*[.]_?(?<TableName>\w*)_(?<Year>\d{4})_(?<Month>\d{2})_(?
 
 
 % enter averaging period in minutes.  Must yield an integer when dividied into 60 (e.g. 1, 2, 5, 10, 20, 30)
-info.avgPer = 30;
+info.avgPer = 5;
 
 % save QC'd raw tables (1 = yes, 0 = no)
 info.saveRawConditionedData = true;
@@ -120,7 +117,7 @@ info.WaveletLevels = 12;
 info.PF.globalCalculation = 'global';
 
 % recalulate global PF coefficients if 'global' calculation is used
-info.PF.recalculateGlobalCoefficients = false;
+info.PF.recalculateGlobalCoefficients = true;
 
 % select averaging period for global PF calculation, if used - local PF calculation runs with average specified in
 % info.avgPer
@@ -225,8 +222,8 @@ if info.saveStructParams
 end
 
 numFiles = size(dataFiles, 1);
-%parfor i = 1:numFiles %For some reason parfor sometimes gives random errors. Run with regular for loop at that point
-for i = 1:numFiles
+parfor i = 1:numFiles %For some reason parfor sometimes gives random errors. Run with regular for loop at that point
+%for i = 1:numFiles
         % load files
         [data, dataInfo] = loadData(dataFiles(i,:, :),i,numFiles,info,tableNames);
         
