@@ -1,6 +1,6 @@
 function [output] = StationarityWrap(data, rotatedSonicData, info, output, sensorInfo, tableNames)
 
-StationarityHeader = {'Timestamp'; []};
+StationarityHeader = {'time'};
 velComp = {'u', 'v', 'w'};
 
 if isfield(sensorInfo, 'u')
@@ -47,7 +47,7 @@ if isfield(sensorInfo, 'u')
                 
                 % Add information to header
                 if qq==1
-                    StationarityHeader = [StationarityHeader, {'T_fw Flag'; num2str(sensorInfo.fw(ii, 3))}];
+                    StationarityHeader = [StationarityHeader, {[num2str(sensorInfo.fw(ii, 3)), 'm Tfw_Stationarity_Flag [-]']}];
                 end
                 colInd = colInd + 1;
 
@@ -59,7 +59,7 @@ if isfield(sensorInfo, 'u')
 
                 % Add information to header
                 if qq==1
-                    StationarityHeader = [StationarityHeader, {'w''t_fw'' Flag'; num2str(sensorInfo.fw(ii, 3))}];
+                    StationarityHeader = [StationarityHeader, {[num2str(sensorInfo.fw(ii, 3)), 'm KinHeatFlux_wPF''Tfw''_Stationarity_Flag [-]']}];
                 end
 
                 colInd = colInd + 1;
@@ -77,7 +77,7 @@ if isfield(sensorInfo, 'u')
                 
                 % Add information to header
                 if qq==1
-                    StationarityHeader = [StationarityHeader, {'u Flag'; num2str(sensorInfo.u(ii, 3))}];
+                    StationarityHeader = [StationarityHeader, {[num2str(sensorInfo.u(ii, 3)), 'm Streamwise_u_Stationarity_Flag [-]']}];
                 end
                 colInd = colInd + 1;
                 
@@ -89,7 +89,7 @@ if isfield(sensorInfo, 'u')
                 
                 % Add information to header
                 if qq==1
-                    StationarityHeader = [StationarityHeader, {'v Flag'; num2str(sensorInfo.v(ii, 3))}];
+                    StationarityHeader = [StationarityHeader, {[num2str(sensorInfo.u(ii, 3)), 'm Spanwise_v_Stationarity_Flag [-]']}];
                 end
                 colInd = colInd + 1;
                 
@@ -101,7 +101,7 @@ if isfield(sensorInfo, 'u')
                 
                 % Add information to header
                 if qq==1
-                    StationarityHeader = [StationarityHeader, {'w Flag'; num2str(sensorInfo.w(ii, 3))}];
+                    StationarityHeader = [StationarityHeader, {[num2str(sensorInfo.u(ii, 3)), 'm Vertical_w_Stationarity_Flag [-]']}];
                 end
                 colInd = colInd + 1;
 
@@ -113,7 +113,7 @@ if isfield(sensorInfo, 'u')
                 
                 % Add information to header
                 if qq==1
-                    StationarityHeader = [StationarityHeader, {'Tson Flag'; num2str(sensorInfo.Tson(ii, 3))}];
+                    StationarityHeader = [StationarityHeader, {[num2str(sensorInfo.u(ii, 3)), 'm TSon_Stationarity_Flag [-]']}];
                 end
                 colInd = colInd + 1;
 
@@ -125,7 +125,7 @@ if isfield(sensorInfo, 'u')
 
                 % Add information to header
                 if qq==1
-                    StationarityHeader = [StationarityHeader, {'w''t_son'' Flag'; num2str(sensorInfo.Tson(ii, 3))}];                
+                    StationarityHeader = [StationarityHeader, {[num2str(sensorInfo.Tson(ii, 3)), 'm KinHeatFlux_wPF''TSon''_Stationarity_Flag [-]']}];             
                 end
                 colInd = colInd + 1;    
             end
@@ -143,7 +143,7 @@ if isfield(sensorInfo, 'u')
 
                     % Add information to header
                     if qq==1
-                        StationarityHeader = [StationarityHeader, {'H2O Flag'; num2str(sensorInfo.irgaH2O(checkHeight, 3))}];
+                        StationarityHeader = [StationarityHeader, {[num2str(sensorInfo.irgaH2O(checkHeight, 3)), 'm Humidity_Stationarity_Flag [-]']}];
                     end
 
                     colInd = colInd + 1;
@@ -156,7 +156,7 @@ if isfield(sensorInfo, 'u')
 
                     % Add information to header
                     if qq==1
-                        StationarityHeader = [StationarityHeader, {'w''q'' Flag'; num2str(sensorInfo.irgaH2O(checkHeight, 3))}];                
+                        StationarityHeader = [StationarityHeader, {[num2str(sensorInfo.irgaH2O(checkHeight, 3)), 'm KinHumidityFlux_Stationarity_Flag [-]]']}];             
                     end
                     
                     colInd = colInd + 1;

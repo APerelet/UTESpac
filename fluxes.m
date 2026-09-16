@@ -189,15 +189,15 @@ end
             bp = round(linspace(0,numel(t),N+1));
             
             % initialize flux matrices
-            H = nan(N,1);  % kinematic sensible heat flux
-            Hlat = nan(N,1); % kinematic sensible, lateral heat flux
+            Hflux = nan(N,1);  % kinematic sensible heat flux
+            Hlatflux = nan(N,1); % kinematic sensible, lateral heat flux
             RStress = nan(N, 1); %Reynolds stress tensor components
-            tau = nan(N,1); % momentum flux
+            TurbShearStress = nan(N,1); % momentum flux
             tke = nan(N,1); % turbulent kinetic energy
             LHflux = nan(N,1); % latent heat flux
             CO2flux = nan(N,1); % CO2 flux
             derivedT = nan(N,1);  % matrix for derived temperatures
-            L = nan(N,1); % Obukhov Length
+            L_Obukhov = nan(N,1); % Obukhov Length
             sigma = nan(N,1); % standard deviations (u, v, w)
             
             % initialize raw variable matrices
@@ -220,7 +220,7 @@ end
             if isfield(sensorInfo,'fw')
                 raw.fwTh = nan(bp(end),numSonics); % theta from FW
                 raw.fwT = nan(bp(end),numSonics); % T from FW
-                faw.fwTPrime = nan(bp(end),numSonics); % T' from FW
+                raw.fwTPrime = nan(bp(end),numSonics); % T' from FW
                 raw.fwThPrime = nan(bp(end),numSonics); % theta' from finewire
             end
 
@@ -252,15 +252,15 @@ end
             end
             
             % initialize headers
-            Hheader = cell(1);
-            HlatHeader = cell(1);
-            tauHeader = cell(1);
+            HfluxHeader = cell(1);
+            HlatfluxHeader = cell(1);
+            TurbShearStressHeader = cell(1);
             RStressHeader = cell(1);
             tkeHeader = cell(1);
             LHfluxHeader = cell(1);
             CO2fluxHeader = cell(1);
-            derivedTheader = cell(1);
-            Lheader = cell(1);
+            derivedTHeader = cell(1);
+            LObukhovHeader = cell(1);
             sigmaHeader = cell(1);
         end
             
@@ -305,9 +305,9 @@ end
             unrotatedSonFlag = logical(wNanFlag+wSpikeFlag+sonicDiagnosticFlag); % total sonic flag for unrotated calculations
             
             % find rotated sonic columns
-            uCol = strcmp(output.rotatedSonicHeader,strcat(num2str(sonHeight),'m:u'));
-            vCol = strcmp(output.rotatedSonicHeader,strcat(num2str(sonHeight),'m:v'));
-            wCol = strcmp(output.rotatedSonicHeader,strcat(num2str(sonHeight),'m:w'));
+            uCol = strcmp(output.rotatedSonicHeader,strcat(num2str(sonHeight),'m Streamwise_u [m s^-1]'));
+            vCol = strcmp(output.rotatedSonicHeader,strcat(num2str(sonHeight),'m Spanwise_v [m s^-1]'));
+            wCol = strcmp(output.rotatedSonicHeader,strcat(num2str(sonHeight),'m Vertical_w [m s^-1]'));
             
             % load rotated sonic values [u, v, w]
             uPF(:, 1) = rotatedSonicData(:,uCol);
@@ -367,7 +367,7 @@ end
                     
                     % store nan'd data at height
                     output.specificHum(:,end+1) = qRefavgLocal*nan;
-                    output.specificHumHeader{end+1} = sprintf('%g m: q(g/g)',sonHeight);
+                    output.specificHumHeader{end+1} = strcat(num2str(sonHeight), 'm Specific_Humidity [g g^-1]');
                 else
                     x = [floor(x(1)); x];
                     y = qRefavgLocal(~isnan(qRefavgLocal));
@@ -376,7 +376,7 @@ end
                     
                     % store data
                     output.specificHum(:,end+1) = qRefavgLocal;
-                    output.specificHumHeader{end+1} = sprintf('%g m: q(g/g)',sonHeight);
+                    output.specificHumHeader{end+1} = strcat(num2str(sonHeight), 'm Specific_Humidity [g g^-1]');
                 end
                 
                 % use qRefFastLocal if not all NaNs to find virt temp
@@ -393,7 +393,7 @@ end
                 thetaFw = fw + Gamma*(sonHeight - zRef);
                 temp = simpleAvg([thetaFw t],info.avgPer);
                 derivedT(:,end+1) = temp(:,1);
-                derivedTheader{end+1} = strcat(num2str(sonHeight),' m: theta_fw');
+                derivedTHeader{end+1} = strcat(num2str(sonHeight),'m Tfw_Potential_Temperature [degC]');
             else
                 thetaFw = [];
             end
@@ -402,23 +402,23 @@ end
             thetaSon = Tson + Gamma*(sonHeight - zRef);
             temp = simpleAvg([thetaSon t],info.avgPer);
             derivedT(:,end+1) = temp(:,1);
-            derivedTheader{end+1} = strcat(num2str(sonHeight),' m: theta_s_son');
+            derivedTHeader{end+1} = strcat(num2str(sonHeight),'m Tson_Potential_Temperature [degC]');
             
             % find fw virt, pot temp with qRef
             if ~isempty(thetaFw)
                 VthetaFw = thetaFw.*(1+0.61*qRefFastLocal); % stull pg 7
                 temp = simpleAvg([VthetaFw t],info.avgPer);
                 derivedT(:,end+1) = temp(:,1);
-                derivedTheader{end+1} = strcat(num2str(sonHeight),' m: theta_v_fw');
+                derivedTHeader{end+1} = strcat(num2str(sonHeight),'m Tfw_Virtual_Potential_Temperature [degC]');
             else
                 VthetaFw = [];
             end
             
-            % find pot temp from sonic
+            % find virtual pot temp from sonic
             thetaSonAir = thetaSon./(1+0.51*qRefFastLocal); % stull pg 7
             temp = simpleAvg([thetaSonAir t],info.avgPer);
             derivedT(:,end+1) = temp(:,1);
-            derivedTheader{end+1} = strcat(num2str(sonHeight),' m: theta_son');
+            derivedTHeader{end+1} = strcat(num2str(sonHeight),'m Tson_Virtual_Potential_Temperature [degC]');
             
             % find H2O and CO2 columns if they exist
             if isfield(sensorInfo,'irgaH2O') && ~isempty(sensorInfo.irgaH2O(sensorInfo.irgaH2O(:,3)==sonHeight,2)) % EC150
@@ -506,38 +506,38 @@ end
                     % place time stamp in column 1
                     %%%%%%%%%%%%%%%%%%%%%%%
                     %%%%%%%%%%%%%%%%%%%%%%%
-                    H(jj,1) = t(bp(jj+1));
-                    Hlat(jj,1) = t(bp(jj+1));
-                    tau(jj,1) = t(bp(jj+1));
+                    Hflux(jj,1) = t(bp(jj+1));
+                    Hlatflux(jj,1) = t(bp(jj+1));
+                    TurbShearStress(jj,1) = t(bp(jj+1));
                     RStress(jj, 1) = t(bp(jj+1));
                     tke(jj,1) = t(bp(jj+1));
                     LHflux(jj,1) = t(bp(jj+1));
                     CO2flux(jj,1) = t(bp(jj+1));
                     derivedT(jj,1) = t(bp(jj+1));
-                    L(jj,1) = t(bp(jj+1));
+                    L_Obukhov(jj,1) = t(bp(jj+1));
                     sigma(jj,1) = t(bp(jj+1));
 
                     if jj == 1
-                        Hheader{1} = 'time';
-                        HlatHeader{1} = 'time';
-                        tauHeader{1} = 'time';
+                        HfluxHeader{1} = 'time';
+                        HlatfluxHeader{1} = 'time';
+                        TurbShearStressHeader{1} = 'time';
                         RStressHeader{1} = 'time';
                         tkeHeader{1} = 'time';
-                        derivedTheader{1} = 'time';
+                        derivedTHeader{1} = 'time';
                         LHfluxHeader{1} = 'time';
                         CO2fluxHeader{1} = 'time';
-                        Lheader{1} = 'time';
+                        LObukhovHeader{1} = 'time';
                         sigmaHeader{1} = 'time';
                     end
                 end
                 
                 % place rho in column 2 of H
-                Hheader{2} = 'rho';
-                H(jj,2) = rhoAvg(jj);
+                HfluxHeader{2} = '0m Density [kg m^-3]';
+                Hflux(jj,2) = rhoAvg(jj);
                 
                 % place Cp in column 3 of H
-                Hheader{3} = 'cp';
-                H(jj,3) = 1004.67*(1+0.84*qRefavg(jj)); % pg. 640 of Stull
+                HfluxHeader{3} = '0m Specific_Heat [kJ kg^-1 K^-1)]';
+                Hflux(jj,3) = 1004.67*(1+0.84*qRefavg(jj)); % pg. 640 of Stull
                 
                 %%%%%%%%%%%%%%%%%%%%%%%
                 %%%%%%%%%%%%%%%%%%%%%%%
@@ -550,69 +550,43 @@ end
                     tmpPF = uPF(bp(jj)+1:bp(jj+1), rr);
 
                     tmpLen = length(tmp);
-
+                    
+                    %%%%%%%%%%%%
+                    % Check for NaNs
                     nanCheck = find(isnan(tmpPF));
                     if ~isempty(nanCheck)
-                        if length(nanCheck)<0.25*length(tmpPF)
-                            % Run wavelet decomposition on data that does not
-                            % include leading/trailing nans
-                            if nanCheck(1)==1
-                                dataStart = nanCheck(find(~(diff(nanCheck)==1), 1));
-                                if isempty(dataStart)
-                                    dataStart = nanCheck(end);
-                                end
-                            else
-                                dataStart = 1;
-                            end
-                            if nanCheck(end) == length(tmpPF)
-                                dataEnd = nanCheck(find(~(diff(nanCheck)==1), 1, 'last')+1);
-                                if isempty(dataEnd)
-                                    dataEnd = nanCheck(1);
-                                end
-                            else
-                                dataEnd = length(tmpPF);
-                            end
-                            tmp = tmp(dataStart:dataEnd);
-                            tmpPF = tmpPF(dataStart:dataEnd);
-
-
-                            tmp = inpaint_nans(tmp, 0);
-                            tmpPF = inpaint_nans(tmpPF, 0);
+                        if length(nanCheck)<info.nanTest.maxPercent/100*length(tmpPF)
+                            % Replace NaNs with linear interpolated points for Wavelet analysis
+                            tmp = LinearNanReplace(tmp);
+                            tmpPF = LinearNanReplace(tmpPF);
                             nanFlag = 0;
                         else
                             nanFlag = 1;
                         end
                     else
                         nanFlag= 0;
-                        dataStart = 1;
-                        dataEnd = length(tmp);
                     end
                     
+                    %%%%%%%%%%%%
+                    % Apply Averaging scheme
                     if ~nanFlag
                         % UNROTATED
-                        [coef,l] = wavedec(tmp, info.WaveletLevels, 'sym8'); 
-                        coef(1:l(1)) = 0;
-                        uP_ = waverec(coef, l, 'sym8');
-                        uP(:, rr) = [nan.*ones(dataStart-1, 1); uP_; nan.*ones(tmpLen-dataEnd, 1)];
-                        
+                        detrendOut = UTESpacDetrend(tmp, info);
+                        uP(:, rr) = detrendOut.detrendData;
+                        uP(nanCheck, rr) = NaN;
+
                         % ROTATED
-                        [coef,l] = wavedec(tmpPF, info.WaveletLevels, 'sym8'); 
-                        
-% % %                         %%% DEBUG
-% % %                         if and(rr == 1, mod(jj, 6) == 0)
-% % %                             saveDir = '/scratch/general/lustre/u0944063/Oregon2013/WaveletFigs/uPF';
-% % %                             fileName = [num2str(sonHeight), 'm_', datestr(H(jj, 1), 'yyyy_mm_dd_HHMM')];
-% % %                             plotScalogram_UTESPacDebug(length(tmpPF), coef, l, ['$',velNames{rr}, '_{PF}$ @', num2str(sonHeight), ' m'], saveDir, fileName, 20, info.WaveletLevels)
-% % %                         end
-% % %                         %%% DEBUG DONE
-                        WaveletCoef.cD.([velNames{rr}, 'PF_', replace(num2str(sonHeight), '.', '_')]){jj} = [t(bp(jj+1)), coef'];
-                        WaveletCoef.l.([velNames{rr}, 'PF_', replace(num2str(sonHeight), '.', '_')]){jj} = [t(bp(jj+1)), l'];
-                        coef(1:l(1)) = 0;
-                        uPF_P_ = waverec(coef, l, 'sym8');
-                        uPF_P(:, rr) = [nan.*ones(dataStart-1, 1); uPF_P_; nan.*ones(tmpLen-dataEnd, 1)];
+                        detrendOut = UTESpacDetrend(tmpPF, info);
+                        %%% DEBUG
+                        % Save wavelet Coefficients
+% % %                             WaveletCoef.cD.([velNames{rr}, 'PF_', replace(num2str(sonHeight), '.', '_')]){jj} = [t(bp(jj+1)), detrendData.coef'];
+% % %                             WaveletCoef.l.([velNames{rr}, 'PF_', replace(num2str(sonHeight), '.', '_')]){jj} = [t(bp(jj+1)), detrendData.l'];
+                        %%% DEBUG DONE
+                        uPF_P(:, rr) = detrendOut.detrendData;
+                        uPF_P(nanCheck, rr) = NaN;
                     else
                         uP(:, rr) = nan.*ones(size(tmp));
-                        uPF_P(:, rr) = nan.*ones(size(tmp));
+                        uPF_P(:, rr) = nan.*ones(size(tmpPF));
                     end
                 end
                 
@@ -625,32 +599,12 @@ end
 
                 nanCheck = find(isnan(tmpTson));
                 if ~isempty(nanCheck)
-                    if length(nanCheck)<0.25*length(tmpTson)
-                        % Run wavelet decomposition on data that does not
-                        % include leading/trailing nans
-                        if nanCheck(1)==1
-                            dataStart = nanCheck(find(~(diff(nanCheck)==1), 1));
-                            if isempty(dataStart)
-                                dataStart = nanCheck(end);
-                            end
-                        else
-                            dataStart = 1;
-                        end
-                        if nanCheck(end) == length(tmpTson)
-                            dataEnd = nanCheck(find(~(diff(nanCheck)==1), 1, 'last')+1);
-                            if isempty(dataEnd)
-                                dataEnd = nanCheck(1);
-                            end
-                        else
-                            dataEnd = length(tmpTson);
-                        end
-                        tmpTson = tmpTson(dataStart:dataEnd);
-                        tmpthetaSonAir = tmpthetaSonAir(dataStart:dataEnd);
-                        tmpthetaSon = tmpthetaSon(dataStart:dataEnd);
+                    if length(nanCheck)<info.nanTest.maxPercent/100*length(tmpTson)
+                        % Replace NaNs with linear interpolated points for Wavelet analysis
+                        tmpTson = LinearNanReplace(tmpTson);
+                        tmpthetaSonAir = LinearNanReplace(tmpthetaSonAir);
+                        tmpthetaSon = LinearNanReplace(tmpthetaSon);
 
-                        tmpTson = inpaint_nans(tmpTson, 0);
-                        tmpthetaSonAir = inpaint_nans(tmpthetaSonAir, 0);
-                        tmpthetaSon = inpaint_nans(tmpthetaSon, 0);
                         nanFlag = 0;
                     else
                         nanFlag = 1;
@@ -662,23 +616,26 @@ end
                 end
                 
                 if ~nanFlag
-                    [coef,l] = wavedec(tmpTson, info.WaveletLevels, 'sym8'); 
-                    WaveletCoef.cD.(['Tson_', replace(num2str(sonHeight), '.', '_')]){jj}	= [t(bp(jj+1)), coef'];	 
-       	       	    WaveletCoef.l.(['Tson_', replace(num2str(sonHeight), '.', '_')]){jj} = [t(bp(jj+1)), l'];
 
-                    coef(1:l(1)) = 0;
-                    TsonP_ = waverec(coef, l, 'sym8');
-                    TsonP = [nan.*ones(dataStart-1, 1); TsonP_; nan.*ones(tmpLen-dataEnd, 1)];
-                    
-                    [coef,l] = wavedec(tmpthetaSonAir, info.WaveletLevels, 'sym8'); 
-                    coef(1:l(1)) = 0;
-                    thetaSonAirP_ = waverec(coef, l, 'sym8');
-                    thetaSonAirP = [nan.*ones(dataStart-1, 1); thetaSonAirP_; nan.*ones(tmpLen-dataEnd, 1)];
-                    
-                    [coef,l] = wavedec(tmpthetaSon, info.WaveletLevels, 'sym8'); 
-                    coef(1:l(1)) = 0;
-                    thetaSonP_ = waverec(coef, l, 'sym8');
-                    thetaSonP = [nan.*ones(dataStart-1, 1); thetaSonP_; nan.*ones(tmpLen-dataEnd, 1)];
+                    % Sonic temperature
+                    detrendOut = UTESpacDetrend(tmpTson, info);
+                    %%% Debug
+                    % Save wavelet coeficients
+% % %                         WaveletCoef.cD.(['Tson_', replace(num2str(sonHeight), '.', '_')]){jj}	= [t(bp(jj+1)), detrendOut.coef'];	 
+% % %        	       	        WaveletCoef.l.(['Tson_', replace(num2str(sonHeight), '.', '_')]){jj} = [t(bp(jj+1)), detrendOut.l'];
+                    %%% DEBUG DONE
+                    TsonP = detrendOut.detrendData;
+                    TsonP(nanCheck) = NaN;
+
+                    % Sonic virtual potential temerature
+                    detrendOut = UTESpacDetrend(tmpthetaSonAir, info);
+                    thetaSonAirP = detrendOut.detrendData;
+                    thetaSonAirP(nanCheck) = NaN;
+
+                    % Sonic potential temperature
+                    detrendOut = UTESpacDetrend(tmpthetaSon, info);
+                    thetaSonP = detrendOut.detrendData;
+                    thetaSonP(nanCheck) = NaN;
 
                 else
                     TsonP = nan.*ones(size(tmpTson));
@@ -695,67 +652,42 @@ end
 
                     nanCheck = find(isnan(tmpfw));
                     if ~isempty(nanCheck)                 
-                        if length(nanCheck)<0.25*length(tmpfw)
-                            % Run wavelet decomposition on data that does not
-                            % include leading/trailing nans
-                            if nanCheck(1)==1
-                                dataStart = nanCheck(find(~(diff(nanCheck)==1), 1));
-                                if isempty(dataStart)
-                                    dataStart = nanCheck(end);
-                                end
-                            else
-                                dataStart = 1;
-                            end
-                            if nanCheck(end) == length(tmpfw)
-                                dataEnd = nanCheck(find(~(diff(nanCheck)==1), 1, 'last')+1);
-                                if isempty(dataEnd)
-                                    dataEnd = nanCheck(1);
-                                end
-                            else
-                                dataEnd = length(tmpfw);
-                            end
-                            tmpfw = tmpfw(dataStart:dataEnd);
-                            tmpthetaFw = tmpthetaFw(dataStart:dataEnd);
-                            tmpVthetaFw = tmpVthetaFw(dataStart:dataEnd);
+                        if length(nanCheck)<info.nanTest.maxPercent/100*length(tmpfw)
+                            % Replace NaNs with linear interpolated points for Wavelet analysis
+                            tmpfw = LinearNanReplace(tmpfw);
+                            tmpthetaFw = LinearNanReplace(tmpthetaFw);
+                            tmpVthetaFw = LinearNanReplace(tmpVthetaFw);
 
-                            tmpfw = inpaint_nans(tmpfw, 0);
-                            tmpthetaFw = inpaint_nans(tmpthetaFw, 0);
-                            tmpVthetaFw = inpaint_nans(tmpVthetaFw, 0);
                             nanFlag = 0;
                         else
                             nanFlag = 1;
                         end
                     else
                         nanFlag = 0;
-                        dataStart = 1;
-                        dataEnd = length(tmpfw);
                     end
                     
                     if ~nanFlag
-                        [coef,l] = wavedec(tmpfw, info.WaveletLevels, 'sym8'); 
-                        
-% % %                         %%% DEBUG
-% % %                         if mod(jj, 6) == 0
-% % %                             saveDir = '/scratch/general/lustre/u0944063/Oregon2013/WaveletFigs/FW';
-% % %                             fileName = [num2str(sonHeight), 'm_', datestr(H(jj, 1), 'yyyy_mm_dd_HHMM')];
-% % %                             plotScalogram_UTESPacDebug(length(tmpfw), coef, l, ['fw @ ', num2str(sonHeight), ' m'], saveDir, fileName, 20, info.WaveletLevels)
-% % %                         end
-% % %                         %%% DEBUG DONE
-                        WaveletCoef.cD.(['fw_', replace(num2str(sonHeight), '.', '_')]){jj}    = [t(bp(jj+1)), coef'];
-                        WaveletCoef.l.(['fw_', replace(num2str(sonHeight), '.', '_')]){jj} = [t(bp(jj+1)), l'];
-                        coef(1:l(1)) = 0;
-                        fwP_ = waverec(coef, l, 'sym8');
-                        fwP = [nan.*ones(dataStart-1, 1); fwP_; nan.*ones(tmpLen-dataEnd, 1)];
-                        
-                        [coef,l] = wavedec(tmpthetaFw, info.WaveletLevels, 'sym8'); 
-                        coef(1:l(1)) = 0;
-                        thetaFwP_ = waverec(coef, l, 'sym8');
-                        thetaFwP = [nan.*ones(dataStart-1, 1); thetaFwP_; nan.*ones(tmpLen-dataEnd, 1)];
-                        
-                        [coef,l] = wavedec(tmpVthetaFw, info.WaveletLevels, 'sym8'); 
-                        coef(1:l(1)) = 0;
-                        VthetaFwP_ = waverec(coef, l, 'sym8');
-                        VthetaFwP = [nan.*ones(dataStart-1, 1); VthetaFwP_; nan.*ones(tmpLen-dataEnd, 1)];
+
+                        % Finewire temperature
+                        detrendOut = UTESpacDetrend(tmpfw, info);
+                        %%% DEBUG
+                        % Save wavelet coefficients
+% % %                             WaveletCoef.cD.(['fw_', replace(num2str(sonHeight), '.', '_')]){jj}    = [t(bp(jj+1)), outputDetrend.coef'];
+% % %                             WaveletCoef.l.(['fw_', replace(num2str(sonHeight), '.', '_')]){jj} = [t(bp(jj+1)), outputDetrend.l'];
+                        %%% DEBUG DONE
+                        fwP = detrendOut.detrendData;
+                        fwP(nanCheck) = NaN;
+
+                        % Finewire potential temperature
+                        detrendOut = UTESpacDetrend(tmpthetaFw, info);
+                        thetaFwP = detrendOut.detrendData;
+                        thetaFwP(nanCheck) = NaN;
+
+                        % Finewire virtual potential temperature
+                        detrendOut = UTESpacDetrend(tmpVthetaFw, info);
+                        VthetaFwP = detrendOut.detrendData;
+                        VthetaFwP(nanCheck) = NaN;
+
                     else
                         fwP = nan.*ones(size(tmpfw));
                         thetaFwP = nan.*ones(size(tmpthetaFw));
@@ -796,9 +728,9 @@ end
                 if ~isempty(fw) % check for fw first
                     numSigmaVariables = 9;
                     
-                    sigma(jj,10+(ii-1)*numSigmaVariables) = sqrt(mean(fwP.^2));
+                    sigma(jj,10+(ii-1)*numSigmaVariables) = sqrt(mean(fwP.^2, 'omitnan'));
                     
-                    sigmaHeader{10+(ii-1)*numSigmaVariables} = strcat(num2str(sonHeight),'m :sigma_TFW');
+                    sigmaHeader{10+(ii-1)*numSigmaVariables} = strcat(num2str(sonHeight),'m Tfw_std [degC]');
                     if fwFlag(jj)
                         sigma(jj,10+(ii-1)*numSigmaVariables) = nan;
                     end
@@ -807,14 +739,14 @@ end
                 end
                 
                 % SONIC TEMPERATURE
-                sigma(jj,8+(ii-1)*numSigmaVariables) = sqrt(mean(TsonP.^2));
-                sigmaHeader{8+(ii-1)*numSigmaVariables} = strcat(num2str(sonHeight),'m :sigma_Tson');
+                sigma(jj,8+(ii-1)*numSigmaVariables) = sqrt(mean(TsonP.^2, 'omitnan'));
+                sigmaHeader{8+(ii-1)*numSigmaVariables} = strcat(num2str(sonHeight),'m Tson_std [degC]');
                 if TsonFlag(jj)
                     sigma(jj,8+(ii-1)*numSigmaVariables) = nan;
                 end
                 
-                sigma(jj,9+(ii-1)*numSigmaVariables) = nanmean(uPF_P(:, 3).*TsonP.^2);
-                sigmaHeader{9+(ii-1)*numSigmaVariables} = strcat(num2str(sonHeight),'m :wPFP_TsonP_TsonP');
+                sigma(jj,9+(ii-1)*numSigmaVariables) = mean(uPF_P(:, 3).*TsonP.^2, 'omitnan');
+                sigmaHeader{9+(ii-1)*numSigmaVariables} = strcat(num2str(sonHeight),'m wPFP_TsonP_TsonP [m s^-1 degC^2]');
                 if TsonFlag(jj) || rotatedSonFlag(jj)
                     sigma(jj,9+(ii-1)*numSigmaVariables) = nan;
                 end
@@ -822,15 +754,15 @@ end
                 % SONIC VELOCITIES
                 for rr=1:3
                     % UNROTATED
-                    sigma(jj,2+(rr-1)+(ii-1)*numSigmaVariables) = sqrt(mean(uP(:, rr).^2));
-                    sigmaHeader{2+(rr-1)+(ii-1)*numSigmaVariables} = strcat(num2str(sonHeight),'m :sigma_',velNames{rr});
+                    sigma(jj,2+(rr-1)+(ii-1)*numSigmaVariables) = sqrt(mean(uP(:, rr).^2, 'omitnan'));
+                    sigmaHeader{2+(rr-1)+(ii-1)*numSigmaVariables} = strcat(num2str(sonHeight),'m ',velNames{rr}, '_std [m s^-1]');
                     if unrotatedSonFlag(jj)
                         sigma(jj,2+(rr-1)+(ii-1)*numSigmaVariables) = nan;
                     end
                     
                     % ROTATED
-                    sigma(jj,5+(rr-1)+(ii-1)*numSigmaVariables) = sqrt(mean(uPF_P(:, rr).^2));
-                    sigmaHeader{5+(rr-1)+(ii-1)*numSigmaVariables} = strcat(num2str(sonHeight),'m :sigma_', velNames{rr},'PF');
+                    sigma(jj,5+(rr-1)+(ii-1)*numSigmaVariables) = sqrt(mean(uPF_P(:, rr).^2, 'omitnan'));
+                    sigmaHeader{5+(rr-1)+(ii-1)*numSigmaVariables} = strcat(num2str(sonHeight),'m ', velNames{rr},'_std_PF [m s^-1]');
                     if rotatedSonFlag(jj)
                         sigma(jj,5+(rr-1)+(ii-1)*numSigmaVariables) = nan;
                     end
@@ -843,68 +775,68 @@ end
                     % USING SONIC TEMPERATURE
                     if rr<3
                         % LATERAL - UNROTATED
-                        Hlat(jj,2+(rr-1)+(ii-1)*12) = nanmean(uP(:, rr).*TsonP);
-                        HlatHeader{2+(rr-1)+(ii-1)*12} = strcat(num2str(sonHeight),'m son:Ts''', velNames{rr},'''');
+                        Hlatflux(jj,2+(rr-1)+(ii-1)*12) = mean(uP(:, rr).*TsonP, "omitnan");
+                        HlatfluxHeader{2+(rr-1)+(ii-1)*12} = strcat(num2str(sonHeight),'m KinHeatFlux_Tson''', velNames{rr},''' [m s^-1 degC]');
                         if unrotatedSonFlag(jj)||TsonFlag(jj)
-                            Hlat(jj,2+(rr-1)+(ii-1)*12) = nan;
+                            Hlatflux(jj,2+(rr-1)+(ii-1)*12) = nan;
                         end
                         
-                        Hlat(jj,6+(rr-1)+(ii-1)*12) = nanmean(uP(:, rr).*thetaSonP);
-                        HlatHeader{6+(rr-1)+(ii-1)*12} = strcat(num2str(sonHeight),'m son:Th_s''', velNames{rr},'''');
+                        Hlatflux(jj,6+(rr-1)+(ii-1)*12) = mean(uP(:, rr).*thetaSonP, 'omitnan');
+                        HlatfluxHeader{6+(rr-1)+(ii-1)*12} = strcat(num2str(sonHeight),'m KinHeatFlux_Tson_Potential''', velNames{rr},''' [m s^-1 degC]');
                         if rotatedSonFlag(jj)||TsonFlag(jj)
-                            Hlat(jj,6+(rr-1)+(ii-1)*12) = nan;
+                            Hlatflux(jj,6+(rr-1)+(ii-1)*12) = nan;
                         end
 
                         % LATERAL ROTATED
-                        Hlat(jj,4+(rr-1)+(ii-1)*12) = nanmean(uPF_P(:, rr).*TsonP);
-                        HlatHeader{4+(rr-1)+(ii-1)*12} = strcat(num2str(sonHeight),'m son:Ts''', velNames{rr},'PF''');
+                        Hlatflux(jj,4+(rr-1)+(ii-1)*12) = mean(uPF_P(:, rr).*TsonP, "omitnan");
+                        HlatfluxHeader{4+(rr-1)+(ii-1)*12} = strcat(num2str(sonHeight),'m KinHeatFlux_Tson''', velNames{rr},'PF'' [m s^-1 degC]');
                         if rotatedSonFlag(jj)||TsonFlag(jj)
-                            Hlat(jj,4+(rr-1)+(ii-1)*12) = nan;
+                            Hlatflux(jj,4+(rr-1)+(ii-1)*12) = nan;
                         end
                         
-                        Hlat(jj,8+(rr-1)+(ii-1)*12) = nanmean(uPF_P(:, rr).*thetaSonP);
-                        HlatHeader{8+(rr-1)+(ii-1)*12} = strcat(num2str(sonHeight),'m son:Th_s''', velNames{rr},'PF''');
+                        Hlatflux(jj,8+(rr-1)+(ii-1)*12) = mean(uPF_P(:, rr).*thetaSonP, 'omitnan');
+                        HlatfluxHeader{8+(rr-1)+(ii-1)*12} = strcat(num2str(sonHeight),'m KinHeatFlux_Tson_Potential''', velNames{rr},'PF'' [m s^-1 degC]');
                         if rotatedSonFlag(jj)||TsonFlag(jj)
-                            Hlat(jj,8+(rr-1)+(ii-1)*12) = nan;
+                            Hlatflux(jj,8+(rr-1)+(ii-1)*12) = nan;
                         end
                         
                     else
                         % Vertical unrotated
-                        H(jj,4+(ii-1)*12) = nanmean(uP(:, rr).*TsonP);
-                        Hheader{4+(ii-1)*12} = strcat(num2str(sonHeight),'m son:Ts''',velNames{rr},'''');
+                        Hflux(jj,4+(ii-1)*12) = mean(uP(:, rr).*TsonP, 'omitnan');
+                        HfluxHeader{4+(ii-1)*12} = strcat(num2str(sonHeight),'m KinHeatFlux_Tson''',velNames{rr},''' [m s^-1 degC]');
                         if unrotatedSonFlag(jj)||TsonFlag(jj)
-                            H(jj,4+(ii-1)*12) = nan;
+                            Hflux(jj,4+(ii-1)*12) = nan;
                         end
                         
-                        H(jj,10+(ii-1)*12) = nanmean(uP(:, rr).*thetaSonP);
-                        Hheader{10+(ii-1)*12} = strcat(num2str(sonHeight),'m son:Th_s''',velNames{rr},'''');
+                        Hflux(jj,10+(ii-1)*12) = mean(uP(:, rr).*thetaSonP, 'omitnan');
+                        HfluxHeader{10+(ii-1)*12} = strcat(num2str(sonHeight),'m KinHeatFlux_Tson_Potential''',velNames{rr},''' [m s^-1 degC]');
                         if unrotatedSonFlag(jj)||TsonFlag(jj)
-                            H(jj,10+(ii-1)*12) = nan;
+                            Hflux(jj,10+(ii-1)*12) = nan;
                         end
                         
-                        H(jj,6+(ii-1)*12) = nanmean(uP(:, 3).*thetaSonAirP);
-                        Hheader{6+(ii-1)*12} = strcat(num2str(sonHeight),'m son:Th''',velNames{rr},'''');
+                        Hflux(jj,6+(ii-1)*12) = mean(uP(:, 3).*thetaSonAirP, 'omitnan');
+                        HfluxHeader{6+(ii-1)*12} = strcat(num2str(sonHeight),'m KinHeatFlux_Tson_Virtual_Potential''',velNames{rr},''' [m s^-1 degC]');
                         if unrotatedSonFlag(jj)||TsonFlag(jj)
-                            H(jj,6+(ii-1)*12) = nan;
+                            Hflux(jj,6+(ii-1)*12) = nan;
                         end
-                        
+
                         % Vertical rotated
-                        H(jj,5+(ii-1)*12) = nanmean(uPF_P(:, rr).*TsonP);
-                        Hheader{5+(ii-1)*12} = strcat(num2str(sonHeight),'m son:Ts''',velNames{rr},'PF''');
+                        Hflux(jj,5+(ii-1)*12) = mean(uPF_P(:, rr).*TsonP, 'omitnan');
+                        HfluxHeader{5+(ii-1)*12} = strcat(num2str(sonHeight),'m KinHeatFlux_Tson''',velNames{rr},'PF'' [m s^-1 degC]');
                         if rotatedSonFlag(jj)||TsonFlag(jj)
-                            H(jj,5+(ii-1)*12) = nan;
+                            Hflux(jj,5+(ii-1)*12) = nan;
                         end
                         
-                        H(jj,11+(ii-1)*12) = nanmean(uPF_P(:, rr).*thetaSonP);
-                        Hheader{11+(ii-1)*12} = strcat(num2str(sonHeight),'m son:Th_s''',velNames{rr},'PF''');
+                        Hflux(jj,11+(ii-1)*12) = mean(uPF_P(:, rr).*thetaSonP, 'omitnan');
+                        HfluxHeader{11+(ii-1)*12} = strcat(num2str(sonHeight),'m KinHeatFlux_Tson_Potential''',velNames{rr},'PF'' [m s^-1 degC]');
                         if rotatedSonFlag(jj)||TsonFlag(jj)
-                            H(jj,11+(ii-1)*12) = nan;
+                            Hflux(jj,11+(ii-1)*12) = nan;
                         end
                         
-                        H(jj,7+(ii-1)*12) = nanmean(uPF_P(:, rr).*thetaSonAirP);
-                        Hheader{7+(ii-1)*12} = strcat(num2str(sonHeight),'m son:Th''',velNames{rr},'PF''');
+                        Hflux(jj,7+(ii-1)*12) = mean(uPF_P(:, rr).*thetaSonAirP, 'omitnan');
+                        HfluxHeader{7+(ii-1)*12} = strcat(num2str(sonHeight),'m KinHeatFlux_Tson_Virtual_Potential''',velNames{rr},'PF'' [m s^-1 degC]');
                         if rotatedSonFlag(jj)||TsonFlag(jj)
-                            H(jj,7+(ii-1)*12) = nan;
+                            Hflux(jj,7+(ii-1)*12) = nan;
                         end
                         
                     end
@@ -912,55 +844,55 @@ end
                 
                 % USING FINEWIRE TEMPERATURE
                 if ~isempty(fw)
-                    H(jj,8+(ii-1)*12) = nanmean(uP(:, 3).*fwP);
-                    Hheader{8+(ii-1)*12} = strcat(num2str(sonHeight),'m fw:T''w''');
+                    Hflux(jj,8+(ii-1)*12) = mean(uP(:, 3).*fwP, 'omitnan');
+                    HfluxHeader{8+(ii-1)*12} = strcat(num2str(sonHeight),'m KinHeatFlux_Tfw''w'' [m s^-1 degC]');
                     if unrotatedSonFlag(jj)||fwFlag(jj)
-                        H(jj,8+(ii-1)*12) = nan;
+                        Hflux(jj,8+(ii-1)*12) = nan;
                     end
                     
-                    H(jj,9+(ii-1)*12) = nanmean(uPF_P(:, 3).*fwP);
-                    Hheader{9+(ii-1)*12} = strcat(num2str(sonHeight),'m fw:T''wPF''');
+                    Hflux(jj,9+(ii-1)*12) = mean(uPF_P(:, 3).*fwP, 'omitnan');
+                    HfluxHeader{9+(ii-1)*12} = strcat(num2str(sonHeight),'m KinHeatFlux_Tfw''wPF'' [m s^-1 degC]');
                     if rotatedSonFlag(jj)||fwFlag(jj)
-                        H(jj,9+(ii-1)*12) = nan;
+                        Hflux(jj,9+(ii-1)*12) = nan;
                     end
                     
-                    H(jj,14+(ii-1)*12) = nanmean(uP(:, 3).*VthetaFwP);
-                    Hheader{14+(ii-1)*12} = strcat(num2str(sonHeight),'m fw:VTh''w''');
+                    Hflux(jj,14+(ii-1)*12) = mean(uP(:, 3).*VthetaFwP, 'omitnan');
+                    HfluxHeader{14+(ii-1)*12} = strcat(num2str(sonHeight),'m KinHeatFlux_Tfw_Virtual_Potential''w'' [m s^-1 degC]');
                     if unrotatedSonFlag(jj)||fwFlag(jj)
-                        H(jj,14+(ii-1)*12) = nan;
+                        Hflux(jj,14+(ii-1)*12) = nan;
                     end
 
-                    H(jj,15+(ii-1)*12) = nanmean(uPF_P(:, 3).*VthetaFwP);
-                    Hheader{15+(ii-1)*12} = strcat(num2str(sonHeight),'m fw:VTh''wPF''');
+                    Hflux(jj,15+(ii-1)*12) = mean(uPF_P(:, 3).*VthetaFwP, 'omitnan');
+                    HfluxHeader{15+(ii-1)*12} = strcat(num2str(sonHeight),'m KinHeatFlux_Tfw_Virtual_Potential''wPF'' [m s^-1 degC]');
                     if rotatedSonFlag(jj)||fwFlag(jj)
-                        H(jj,15+(ii-1)*12) = nan;
+                        Hflux(jj,15+(ii-1)*12) = nan;
                     end
                     
                     % some shit
                     for rr = 1:3
                         if rr<3
-                            Hlat(jj,10+(rr-1)+(ii-1)*12) = nanmean(uP(:, rr).*thetaFwP);
-                            HlatHeader{10+(rr-1)+(ii-1)*12} = strcat(num2str(sonHeight),'m fw:Th''',velNames{rr},'''');
+                            Hlatflux(jj,10+(rr-1)+(ii-1)*12) = mean(uP(:, rr).*thetaFwP, 'omitnan');
+                            HlatfluxHeader{10+(rr-1)+(ii-1)*12} = strcat(num2str(sonHeight),'m KinHeatFlux_Tfw_Potential''',velNames{rr},''' [m s^-1 degC]');
                             if rotatedSonFlag(jj)||fwFlag(jj)
-                                Hlat(jj,10+(rr-1)+(ii-1)*12) = nan;
+                                Hlatflux(jj,10+(rr-1)+(ii-1)*12) = nan;
                             end
                             
-                            Hlat(jj,12+(rr-1)+(ii-1)*12) = nanmean(uPF_P(:, rr).*thetaFwP);
-                            HlatHeader{12+(rr-1)+(ii-1)*12} = strcat(num2str(sonHeight),'m fw:Th''',velNames{rr},'PF''');
+                            Hlatflux(jj,12+(rr-1)+(ii-1)*12) = mean(uPF_P(:, rr).*thetaFwP, 'omitnan');
+                            HlatfluxHeader{12+(rr-1)+(ii-1)*12} = strcat(num2str(sonHeight),'m KinHeatFlux_Tfw_Potential''',velNames{rr},'PF'' [m s^-1 degC]');
                             if rotatedSonFlag(jj)||fwFlag(jj)
-                                Hlat(jj,12+(rr-1)+(ii-1)*12) = nan;
+                                Hlatflux(jj,12+(rr-1)+(ii-1)*12) = nan;
                             end
                         else
-                            H(jj,12+(ii-1)*12) = nanmean(uP(:, rr).*thetaFwP);
-                            Hheader{12+(ii-1)*12} = strcat(num2str(sonHeight),'m fw:Th''',velNames{rr},'''');
+                            Hflux(jj,12+(ii-1)*12) = mean(uP(:, rr).*thetaFwP, 'omitnan');
+                            HfluxHeader{12+(ii-1)*12} = strcat(num2str(sonHeight),'m KinHeatFlux_Tfw_Potential''',velNames{rr},''' [m s^-1 degC]');
                             if unrotatedSonFlag(jj)||fwFlag(jj)
-                                H(jj,12+(ii-1)*12) = nan;
+                                Hflux(jj,12+(ii-1)*12) = nan;
                             end
 
-                            H(jj,13+(ii-1)*12) = nanmean(uPF_P(:, rr).*thetaFwP);
-                            Hheader{13+(ii-1)*12} = strcat(num2str(sonHeight),'m fw:Th''',velNames{rr},'PF''');
+                            Hflux(jj,13+(ii-1)*12) = mean(uPF_P(:, rr).*thetaFwP, 'omitnan');
+                            HfluxHeader{13+(ii-1)*12} = strcat(num2str(sonHeight),'m KinHeatFlux_Tfw_Potential''',velNames{rr},'PF'' [m s^-1 degC]');
                             if rotatedSonFlag(jj)||fwFlag(jj)
-                                H(jj,13+(ii-1)*12) = nan;
+                                Hflux(jj,13+(ii-1)*12) = nan;
                             end
                         end
                     end
@@ -978,27 +910,27 @@ end
                     cntr1 = cntr1+1;
                 end
                 RStress(jj, 2+(ii-1)*6:2+(ii-1)*6+5) = RStress_tmp;
-                RStressHeader(2+(ii-1)*6:2+(ii-1)*6+5) = {[num2str(sonHeight), 'm :uPF''uPF'''], ...
-                    [num2str(sonHeight), 'm :uPF''vPF'''],...
-                    [num2str(sonHeight), 'm :uPF''wPF'''],...
-                    [num2str(sonHeight), 'm :vPF''vPF'''],...
-                    [num2str(sonHeight), 'm :vPF''wPF'''],...
-                    [num2str(sonHeight), 'm :wPF''wPF''']};
+                RStressHeader(2+(ii-1)*6:2+(ii-1)*6+5) = {[num2str(sonHeight), 'm uPF''uPF'' [m^2 s^-2]'], ...
+                    [num2str(sonHeight), 'm uPF''vPF'' [m^2 s^-2]'],...
+                    [num2str(sonHeight), 'm uPF''wPF'' [m^2 s^-2]'],...
+                    [num2str(sonHeight), 'm vPF''vPF'' [m^2 s^-2]'],...
+                    [num2str(sonHeight), 'm vPF''wPF'' [m^2 s^-2]'],...
+                    [num2str(sonHeight), 'm wPF''wPF'' [m^2 s^-2]']};
                 if rotatedSonFlag(jj)
                     RStress(jj, 2+(ii-1)*6:2+(ii-1)*6+5) = nan(1, 6);
                 end
                 
                 % MOMENTUM FLUX
-                tau(jj,2+(ii-1)*2) = sqrt(nanmean(uP(:, 1).*uP(:, 3))^2+nanmean(uP(:, 2).*uP(:, 3))^2);
-                tauHeader{2+(ii-1)*2} = strcat(num2str(sonHeight),'m :sqrt(u''w''^2+v''w''^2)');
+                TurbShearStress(jj,2+(ii-1)*2) = sqrt(mean(uP(:, 1).*uP(:, 3), 'omitnan')^2+mean(uP(:, 2).*uP(:, 3), 'omitnan')^2);
+                TurbShearStressHeader{2+(ii-1)*2} = strcat(num2str(sonHeight),'m KinTurbulent_ShearStress [m^2 s^-2]');
                 if rotatedSonFlag(jj)
-                    tau(jj,2+(ii-1)*2) = nan;
+                    TurbShearStress(jj,2+(ii-1)*2) = nan;
                 end
                 
-                tau(jj,3+(ii-1)*2) = sqrt(nanmean(uPF_P(:,1).*uPF_P(:,3))^2+nanmean(uPF_P(:,2).*uPF_P(:,3))^2);
-                tauHeader{3+(ii-1)*2} = strcat(num2str(sonHeight),'m :sqrt(uPF''wPF''^2+vPF''wPF''^2)');
+                TurbShearStress(jj,3+(ii-1)*2) = sqrt(mean(uPF_P(:,1).*uPF_P(:,3), 'omitnan')^2+mean(uPF_P(:,2).*uPF_P(:,3), 'omitnan')^2);
+                TurbShearStressHeader{3+(ii-1)*2} = strcat(num2str(sonHeight),'m KinTurbulent_ShearStress_PF [m^2 s^-2]');
                 if rotatedSonFlag(jj)
-                    tau(jj,3+(ii-1)*2) = nan;
+                    TurbShearStress(jj,3+(ii-1)*2) = nan;
                 end
                 
 % % %                 tau(jj,4+(ii-1)*3) = nanmean(uPF_P(:,1).*uPF_P(:,3));
@@ -1008,8 +940,8 @@ end
 % % %                 end
                 
                 % TKE
-                tke(jj,1+ii) = 1/2*(nanmean(uP(:,1).^2)+nanmean(uP(:,2).^2)+nanmean(uP(:,3).^2));
-                tkeHeader{1+ii} = strcat(num2str(sonHeight),'m :0.5(u''^2+v''^2+w''^2)');
+                tke(jj,1+ii) = 1/2*(mean(uP(:,1).^2, 'omitnan')+mean(uP(:,2).^2, 'omitnan')+mean(uP(:,3).^2, 'omitnan'));
+                tkeHeader{1+ii} = strcat(num2str(sonHeight),'m Turbulent_Kinetic_Energy [m^2 s^-2]');
                 if rotatedSonFlag(jj)
                     tke(jj,1+ii) = nan;
                 end
@@ -1020,17 +952,17 @@ end
                 % T0_L = nanmedian(Tson(bp(j)+1:bp(j+1))) + 273.15; % Tson in K
                 T0_L = Tref_Kavg(jj);
                 % uStarCubed = sqrt(RStress(jj, 2+(ii-1)*6+2)).^3; % sqrt(uPF'*wPF') %tau(jj,3+(ii-1)*3).^(3/2); % sqrt(uPF'*wPF')
-                uStarCubed = tau(jj, 3+(ii-1)*2).^(3/2);
-		H0_L = H(jj,5+(ii-1)*12); % wPF'.*Tson'
-                H0_fw_L = H(jj,9+(ii-1)*12); % wPF'.*Tfw'
-                
-                L(jj,2+(ii-1)*2) = -uStarCubed/(kappa*g/T0_L*H0_L);
-                L(jj,3+(ii-1)*2) = -uStarCubed/(kappa*g/T0_L*H0_fw_L);
-                Lheader{2+(ii-1)*2} = strcat(num2str(sonHeight),'m L:sqrt(uPF''wPF'')^3/2*T_S/(k*g*wPF''Ts'')');
-                Lheader{3+(ii-1)*2} = strcat(num2str(sonHeight),'m L:sqrt(uPF''wPF'')^3/2*T_S/(k*g*wPF''Tfw'')');
+                uStarCubed = TurbShearStress(jj, 3+(ii-1)*2).^(3/2);
+        		H0_L = Hflux(jj,5+(ii-1)*12); % wPF'.*Tson'
+                H0_fw_L = Hflux(jj,9+(ii-1)*12); % wPF'.*Tfw'
+
+                L_Obukhov(jj,2+(ii-1)*2) = -uStarCubed/(kappa*g/T0_L*H0_L);
+                L_Obukhov(jj,3+(ii-1)*2) = -uStarCubed/(kappa*g/T0_L*H0_fw_L);
+                LObukhovHeader{2+(ii-1)*2} = strcat(num2str(sonHeight),'m Obukhov_Length_Tfw [m]');
+                LObukhovHeader{3+(ii-1)*2} = strcat(num2str(sonHeight),'m Obukhov_Length_Tson [m]');
                 if rotatedSonFlag(jj)||TsonFlag(jj)
-                    L(jj,2+(ii-1)) = nan;
-                    L(jj,3+(ii-1)) = nan;
+                    L_Obukhov(jj,2+(ii-1)) = nan;
+                    L_Obukhov(jj,3+(ii-1)) = nan;
                 end
                 
                 % LATENT HEAT FLUX
@@ -1059,7 +991,7 @@ end
                     Md = 28.97;     % Molar Mass of Dry Air (g/mol)
                     
                     % find heat flux for WPL (wPF_P*TsonP)
-                    kinSenFlux = H(jj,5+(ii-1)*12); % K m/s
+                    kinSenFlux = Hflux(jj,5+(ii-1)*12); % K m/s
                     
                     % find the latent heat of vaporizatoin
                     Lv = (2.501-0.00237*(Tref_Kavg(jj)-273.15))*10^3; % Latent Heat of Vaporization (J/g) Stoll P. 641
@@ -1070,51 +1002,30 @@ end
                     
                     % Check for nans
                     nanCheck = find(isnan(tmpH2O));
-                    if ~isempty(nanCheck)
-                        if length(nanCheck)<0.25*length(tmpH2O)
-                            % Run wavelet decomposition on data that does not
-                            % include leading/trailing nans
-                            if nanCheck(1)==1
-                                dataStart = nanCheck(find(~(diff(nanCheck)==1), 1));
-                                if isempty(dataStart)
-                                    dataStart = nanCheck(end);
-                                end
-                            else
-                                dataStart = 1;
-                            end
-                            if nanCheck(end) == length(tmpH2O)
-                                dataEnd = nanCheck(find(~(diff(nanCheck)==1), 1, 'last')+1);
-                                if isempty(dataEnd)
-                                    dataEnd = nanCheck(1);
-                                end
-                            else
-                                dataEnd = length(tmpH2O);
-                            end
-                            tmpH2O = tmpH2O(dataStart:dataEnd);
+                    if ~isempty(nanCheck)                 
+                        if length(nanCheck)<info.nanTest.maxPercent/100*length(tmpH2O)
+                            % Replace NaNs with linear interpolated points for Wavelet analysis
+                            tmpH2O = LinearNanReplace(tmpH2O);
 
-                            tmpH2O = inpaint_nans(tmpH2O, 0);
                             nanFlag = 0;
                         else
                             nanFlag = 1;
                         end
                     else
                         nanFlag = 0;
-                        dataStart = 1;
-                        dataEnd = length(tmpH2O);
                     end
-                    
+
                     if ~nanFlag
-                        [coef,l] = wavedec(tmpH2O, info.WaveletLevels, 'sym8'); 
-                        WaveletCoef.cD.(['H2O_', replace(num2str(sonHeight), '.', '_')]){jj}    = [t(bp(jj+1)), coef'];
-                        WaveletCoef.l.(['H2O_', replace(num2str(sonHeight), '.', '_')]){jj} = [t(bp(jj+1)), l'];
-
-                        coef(1:l(1)) = 0;
-                        H2Op_ = waverec(coef, l, 'sym8');
-                        H2Op = [nan.*ones(dataStart-1, 1); H2Op_; nan.*ones(tmpLen-dataEnd, 1)];
-
+                        detrendOut = UTESpacDetrend(tmpH2O, info);
+                        %%% DEBUG
+                        % Save wavelet Coefficients
+% % %                             WaveletCoef.cD.(['H2O_', replace(num2str(sonHeight), '.', '_')]){jj}    = [t(bp(jj+1)), detrendOut.coef'];
+% % %                             WaveletCoef.l.(['H2O_', replace(num2str(sonHeight), '.', '_')]){jj} = [t(bp(jj+1)), detrendOut.l'];
+                        %%% DEBUG DONE
+                        H2Op = detrendOut.detrendData;
+                        H2Op(nanCheck) = NaN;
                     else
                         H2Op = nan.*ones(size(tmpH2O));
-
                     end
 
                     % store H2OP in raw structure
@@ -1125,16 +1036,16 @@ end
                     EPF = nanmean(uPF_P(:, 3).*H2Op);  % [g /m^2/s] find evaporation flux from rotated data
                     
                     LHflux(jj,2+(ii-1)*7) = Lv;
-                    LHfluxHeader{2+(ii-1)*7} = strcat(num2str(sonHeight),'m Lv(J/g)');
+                    LHfluxHeader{2+(ii-1)*7} = strcat(num2str(sonHeight),'m Latent_Heat_Vaporization [J g^-1]');
                     
                     LHflux(jj,3+(ii-1)*7) = E;
-                    LHfluxHeader{3+(ii-1)*7} = strcat(num2str(sonHeight),'m w'':E(g/m^2s)');
+                    LHfluxHeader{3+(ii-1)*7} = strcat(num2str(sonHeight),'m KinHumidityFlux_w''E'' [g m^-2 s^-1]');
                     if unrotatedSonFlag(jj)||H2OFlag(jj)
                         LHflux(jj,3+(ii-1)*7) = nan;
                     end
                     
                     LHflux(jj,4+(ii-1)*7) = EPF;
-                    LHfluxHeader{4+(ii-1)*7} = strcat(num2str(sonHeight),'m wPF'':E(g/m^2s)');
+                    LHfluxHeader{4+(ii-1)*7} = strcat(num2str(sonHeight),'m KinHumidityFlux_wPF''E'' [g m^-2 s^-1]');
                     if rotatedSonFlag(jj)||H2OFlag(jj)
                         LHflux(jj,4+(ii-1)*7) = nan;
                     end
@@ -1149,13 +1060,13 @@ end
                         E = E+O2correction;
                         EPF = EPF+O2correction;
                         LHflux(jj,7+(ii-1)*7) = Lv*E;
-                        LHfluxHeader{7+(ii-1)*7} = strcat(num2str(sonHeight),'m O2 no WPL,w'' (W/m^2)');
+                        LHfluxHeader{7+(ii-1)*7} = strcat(num2str(sonHeight),'m HumidityFlux_withO2Corr [W m^-2]');
                         LHflux(jj,8+(ii-1)*7) = Lv*EPF;
-                        LHfluxHeader{8+(ii-1)*7} = strcat(num2str(sonHeight),'m O2 no WPL,wPF'' (W/m^2)');
+                        LHfluxHeader{8+(ii-1)*7} = strcat(num2str(sonHeight),'m HumidityFlux_withO2Corr_PF [W m^-2]');
                         
                         % create WPL headers to include O2 correction
-                        LHfluxHeader{5+(ii-1)*7} = strcat(num2str(sonHeight),'m WPL and O2, w'' (W/m^2)');
-                        LHfluxHeader{6+(ii-1)*7} = strcat(num2str(sonHeight),'m WPL and O2, wPF'' (W/m^2)');
+                        LHfluxHeader{5+(ii-1)*7} = strcat(num2str(sonHeight),'m HumidityFlux_withO2Corr_WPL [W m^-2]');
+                        LHfluxHeader{6+(ii-1)*7} = strcat(num2str(sonHeight),'m HumidityFlux_withO2Corr_WPL_PF [W m^-2]');
                     end
                     
                     % apply WPL Corrections (E.C. by Marc Aubinet 97).  Headers are created above for KH2O and below for EC150
@@ -1173,8 +1084,8 @@ end
                     if ~H2Otype  % find CO2 flux and create H2O WPL headers
                         
                         % create WPL, H2O headers 
-                        LHfluxHeader{5+(ii-1)*7} = strcat(num2str(sonHeight),'m WPL, w'' (W/m^2)');
-                        LHfluxHeader{6+(ii-1)*7} = strcat(num2str(sonHeight),'m WPL, wPF'' (W/m^2)');
+                        LHfluxHeader{5+(ii-1)*7} = strcat(num2str(sonHeight),'m HumidityFlux_withO2Corr_WPL [W m^-2]');
+                        LHfluxHeader{6+(ii-1)*7} = strcat(num2str(sonHeight),'m HumidityFlux_withO2Corr_WPL_PF [W m^-2]');
                         
                         
                         tmpCO2 = rho_CO2(bp(jj)+1:bp(jj+1))./1e6; %(kg/m^3)
@@ -1182,71 +1093,47 @@ end
 
                         % Check for nans
                         nanCheck = find(isnan(tmpCO2));
-                        if ~isempty(nanCheck)
-                            if length(nanCheck)<0.25*length(tmpCO2)
-                                % Run wavelet decomposition on data that does not
-                                % include leading/trailing nans
-                                if nanCheck(1)==1
-                                    dataStart = nanCheck(find(~(diff(nanCheck)==1), 1));
-                                    if isempty(dataStart)
-                                        dataStart = nanCheck(end);
-                                    end
-                                else
-                                    dataStart = 1;
-                                end
-                                if nanCheck(end) == length(tmpCO2)
-                                    dataEnd = nanCheck(find(~(diff(nanCheck)==1), 1, 'last')+1);
-                                    if isempty(dataEnd)
-                                        dataEnd = nanCheck(1);
-                                    end
-                                else
-                                    dataEnd = length(tmpCO2);
-                                end
-                                tmpCO2 = tmpCO2(dataStart:dataEnd);
-
-                                tmpCO2 = inpaint_nans(tmpCO2, 0);
+                        if ~isempty(nanCheck)                 
+                            if length(nanCheck)<info.nanTest.maxPercent/100*length(tmpCO2)
+                                % Replace NaNs with linear interpolated points for Wavelet analysis
+                                tmpCO2 = LinearNanReplace(tmpCO2);
+    
                                 nanFlag = 0;
                             else
                                 nanFlag = 1;
-                                dataStart = 1;
-                                dataEnd = length(tmpCO2);
                             end
                         else
                             nanFlag = 0;
-                            dataStart = 1;
-                            dataEnd = length(tmpCO2);
                         end
                         
                         if ~nanFlag
-                            [coef,l] = wavedec(tmpCO2, info.WaveletLevels, 'sym8'); 
-                            coef(1:l(1)) = 0;
-                            rho_CO2p_ = waverec(coef, l, 'sym8');
-                            rho_CO2p = [nan.*ones(dataStart-1, 1); rho_CO2p_; nan.*ones(tmpLen-dataEnd, 1)];
+                            detrendOut = UTESpacDetrend(tmpCO2, info);
+                            rho_CO2p = detrendOut.detrendData;
+                            rho_CO2p(nanCheck) = NaN;
                         else
                             rho_CO2p = nan.*ones(size(tmpCO2));
                         end
 
-                        tmpCO2 = [nan.*ones(dataStart-1, 1); tmpCO2; nan.*ones(tmpLen-dataEnd, 1)];
                         rho_CO2avg = mean(tmpCO2-rho_CO2p); % kg/m^3
                         evapFlux = LHflux(jj,6+(ii-1)*7)/Lv/1000; % WPL, wPF'' (kg/m^2s)
                         
                         CO2flux(jj,2+(ii-1)*4) = nanmean(uP(:, 3).*rho_CO2p);
-                        CO2fluxHeader{2+(ii-1)*4} = strcat(num2str(sonHeight),'m w'':CO2(kg/m^2s)');
+                        CO2fluxHeader{2+(ii-1)*4} = strcat(num2str(sonHeight),'m KinCO2Flux_w''CO2'' [kg m^-2 s^-1]');
                         if unrotatedSonFlag(jj)||CO2Flag(jj)
                             CO2flux(jj,2+(ii-1)*4) = nan;
                         end
                         
                         CO2flux(jj,3+(ii-1)*4) = nanmean(uPF_P(:, 3).*rho_CO2p);
-                        CO2fluxHeader{3+(ii-1)*4} = strcat(num2str(sonHeight),'m wPF'':CO2(kg/m^2s)');
+                        CO2fluxHeader{3+(ii-1)*4} = strcat(num2str(sonHeight),'m KinCO2Flux_wPF''CO2'' [kg m^-2 s^-1]');
                         if rotatedSonFlag(jj)||CO2Flag(jj)
                             CO2flux(jj,3+(ii-1)*4) = nan;
                         end
                         
                         CO2flux(jj,4+(ii-1)*4) = CO2flux(jj,2+(ii-1)*4) + Md/Mv*(rho_CO2avg/rhodAvg(jj))*evapFlux + (1+Md/Mv*rhovAvg(jj)/rhodAvg(jj))*(rho_CO2avg/Tref_Kavg(jj))*kinSenFlux;
-                        CO2fluxHeader{4+(ii-1)*4} = strcat(num2str(sonHeight),'m WPL,w'':CO2(kg/m^2s)');
+                        CO2fluxHeader{4+(ii-1)*4} = strcat(num2str(sonHeight),'m KinCO2Flux_WPL_w''CO2'' [kg m^-2 s^-1]');
                         
                         CO2flux(jj,5+(ii-1)*4) = CO2flux(jj,3+(ii-1)*4) + Md/Mv*(rho_CO2avg/rhodAvg(jj))*evapFlux + (1+Md/Mv*rhovAvg(jj)/rhodAvg(jj))*(rho_CO2avg/Tref_Kavg(jj))*kinSenFlux;
-                        CO2fluxHeader{5+(ii-1)*4} = strcat(num2str(sonHeight),'m WPL,wPF'':CO2(mol/m^2s)');
+                        CO2fluxHeader{5+(ii-1)*4} = strcat(num2str(sonHeight),'m KinCO2Flux_WPL,wPF''CO2'' [kg m^-2 s^-1)]');
                         
                         % store CO2P in raw structure
                         raw.rhoCO2Prime(bp(jj)+1:bp(jj+1),CO2sensorNumber) = rho_CO2p;
@@ -1259,17 +1146,17 @@ end
 
     end
     %------------- STORE OUTPUTS
-    flag = logical(any(H,1)+isnan(H(1,:)));
-    output.H = H(:,flag);
-    output.Hheader = Hheader(flag);
+    flag = logical(any(Hflux,1)+isnan(Hflux(1,:)));
+    output.Hflux = Hflux(:,flag);
+    output.HfluxHeader = HfluxHeader(flag);
     
-    flag = logical(any(Hlat,1)+isnan(Hlat(1,:)));
-    output.Hlat = Hlat(:,flag);
-    output.HlatHeader = HlatHeader(flag);
+    flag = logical(any(Hlatflux,1)+isnan(Hlatflux(1,:)));
+    output.Hlatflux = Hlatflux(:,flag);
+    output.HlatfluxHeader = HlatfluxHeader(flag);
     
-    flag = logical(any(tau,1)+isnan(tau(1,:)));
-    output.tau = tau(:,flag);
-    output.tauHeader = tauHeader(flag);
+    flag = logical(any(TurbShearStress,1)+isnan(TurbShearStress(1,:)));
+    output.TurbShearStress = TurbShearStress(:,flag);
+    output.TurbShearStressHeader = TurbShearStressHeader(flag);
     
     flag = logical(any(tke,1)+isnan(tke(1,:)));
     output.tke = tke(:,flag);
@@ -1279,18 +1166,18 @@ end
     output.sigma = sigma(:,flag);
     output.sigmaHeader = sigmaHeader(flag);
     
-    flag = logical(any(L,1)+isnan(L(1,:)));
-    output.L = L(:,flag);
-    output.Lheader = Lheader(flag);
+    flag = logical(any(L_Obukhov,1)+isnan(L_Obukhov(1,:)));
+    output.LObukhov = L_Obukhov(:,flag);
+    output.LObukhovHeader = LObukhovHeader(flag);
 
     flag = logical(any(RStress,1)+isnan(RStress(1,:)));
-    output.ReynoldStress = RStress;
+    output.ReynoldStress = RStress(:, flag);
     output.ReynoldStressHeader = RStressHeader;
     
     if size(derivedT,2) > 1
         flag = logical(any(derivedT,1)+isnan(derivedT(1,:)));
         output.derivedT = derivedT(:,flag);
-        output.derivedTheader = derivedTheader(flag);
+        output.derivedTHeader = derivedTHeader(flag);
     end
     
     if size(LHflux,2) > 1

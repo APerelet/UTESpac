@@ -63,20 +63,20 @@ addpath(genpath('/uufs/chpc.utah.edu/common/home/u0944063/MatlabCode'));
 info.UTESpacVersion = '5.2';
 
 % enter root folder where site* folders are located
-info.rootFolder = 'F:\Alexei\Oregon_2013';
+info.rootFolder = 'D:\ACES';
 
 % folder structure between site folder and CSV files
 % Example
 %   .../siteXYZ/*.dat       -> info.foldstruct = '';
 %   .../siteXYZ/CSV/*.dat   -> info.foldstruct = [filesep, 'CSV'];
-%info.foldStruct = [filesep, 'CSV'];
-info.foldStruct = '';
+info.foldStruct = [filesep, 'CSV'];
+%info.foldStruct = '';
 
 % Enter regular expression for file for
 % fields of <Year>, <Month>, <Day> are required
 % <TableName> must match what is specified in siteinfo.m 
 %info.FileForm = 'CSV_(?<serial>\d+)[.](?<TableName>\w*)_\d+_(?<Year>\d{4})_(?<Month>\d{2})_(?<Day>\d{2})_(?<Hour>\d{2})(?<Minute>\d{2}).dat';
-info.FileForm = 'CSV_\w*[.]_?(?<TableName>\w*)_(?<Year>\d{4})_(?<Month>\d{2})_(?<Day>\d{2})_(?<Hour>\d{2})(?<Minute>\d{2}).dat';
+info.FileForm = 'CSV_\w*[.]_?(?<TableName>\w*)_(?<Year>\d{4})_(?<Month>\d{2})_(?<Day>\d{2})_(?<Hour>\d{2})(?<Minute>\d{2})(_\d+)?.dat';
 
 
 % enter averaging period in minutes.  Must yield an integer when dividied into 60 (e.g. 1, 2, 5, 10, 20, 30)
@@ -87,7 +87,7 @@ info.saveRawConditionedData = true;
 
 % save structure parameters and structure functions for temperature and humidity
 info.saveStructParams = true;
-info.saveStructFunc = true;
+info.saveStructFunc = false;
 
 % Separation to use for calculating structure parameters. 0.5 is upper
 % limit of power law range
@@ -100,7 +100,8 @@ info.saveNetCDF = false;
 % save .csv files
 info.saveCSV = false;
 
-% enter detrending format ('constant' or 'linear')
+% enter detrending format ('constant' or 'linear', 'wavelet')
+% wavelet removes the first mode of a multiresoltution wavelet analysis
 info.detrendingFormat = 'linear';
 
 % number of levels for wavelet decomposition
@@ -114,10 +115,10 @@ info.WaveletLevels = 12;
 % graphically when the code is executed - for 'global' calculations, all data must first be run with a 'local' planar
 % fit and 5-min averaging
 % MUST be in folder output5
-info.PF.globalCalculation = 'global';
+info.PF.globalCalculation = 'local';
 
 % recalulate global PF coefficients if 'global' calculation is used
-info.PF.recalculateGlobalCoefficients = true;
+info.PF.recalculateGlobalCoefficients = false;
 
 % select averaging period for global PF calculation, if used - local PF calculation runs with average specified in
 % info.avgPer
@@ -182,20 +183,20 @@ info.diagnosticTest.meanLiGasDiagnosticLimit = 220;  % Full strength is 255, les
 template.u = 'Ux_*'; % sonic u  --   [m/s]
 template.v = 'Uy_*'; % sonic v  --   [m/s]
 template.w = 'Uz_*'; % sonic w  --   [m/s]
-template.Tson = 'Ts_*'; % sonic T  --   [C or K]
-template.sonDiagnostic = 'diag_word_*'; % sonic diagnostic  --  [-]
+template.Tson = 'T_Sonic_*'; % sonic T  --   [C or K]
+template.sonDiagnostic = 'sonic_diag_*'; % sonic diagnostic  --  [-]
 template.fw = 'fw_*'; % sonic finewires to be used for Eddy Covariance  --  [C]
-template.RH = 'HMP_RH_*'; % slow response relative humidity for virtual temperature calculation  --  [Fract or %]
-template.T = 'HMP_T_*'; % slow response temperature  --  [C]
+template.RH = 'RH_HMP_*'; % slow response relative humidity for virtual temperature calculation  --  [Fract or %]
+template.T = 'T_HMP_*'; % slow response temperature  --  [C]
 template.P = 'Pressure_*'; % pressure  --  [kPa or mBar]
 template.irgaH2O = 'H2O_*'; % for use with Campbell EC150 and IRGASON.  WPL corrections applied  --  [g/m^3]
 template.irgaH2OsigStrength = 'H2OSig_*'; % EC150 Signal Strength  --  [-]
 template.irgaCO2 = 'CO2_*'; % for use with Campbell EC150 and IRGASON.  WPL corrections applied  --  [mg/m^3]
 template.irgaCO2sigStrength = 'CO2Sig_*'; % EC150 Signal Strength  --  [-]
 template.irgaGasDiag = 'gas_diag_*'; % EC150 gas (CO2 and H2O) diagnostic, 0-> Okay  --  [-]
-template.LiH2O = 'LiH2O_*'; % for use with Licor 7500.  WPL corrections applied  --  [mmol/mol]
-template.LiCO2 = 'LiCO2_*'; % for use with Licor 7500.  WPL corrections applied  --  [mmol/mol]
-template.LiGasDiag = 'Li_gas_diag_*'; % Li7500 gas (CO2 and H2O) diagnostic >~230 -> Okay  --  [-]
+template.LiH2O = 'H2O7500_*'; % for use with Licor 7500.  WPL corrections applied  --  [mmol/mol]
+template.LiCO2 = 'CO27500_*'; % for use with Licor 7500.  WPL corrections applied  --  [mmol/mol]
+template.LiGasDiag = 'Diag7500_*'; % Li7500 gas (CO2 and H2O) diagnostic >~230 -> Okay  --  [-]
 template.KH2O = 'KH2O_H2O_*'; % for use with KH2Os.  WPL and O2 corrections applied  --  [g/m^3]
 template.cup = 'cup_*';  % wind speed from cup anemometers  --  [m/s]
 template.birdSpd = 'wbSpd_*';  % wind speed from prop anemometer  --  [m/s]

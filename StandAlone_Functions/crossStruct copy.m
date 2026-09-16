@@ -74,6 +74,13 @@ else
     r_ = [1:1:pnts]./freq;
 end
 
+%for jj = 1:pnts
+%    C_xy_(jj) = D_xy(jj)*r_(jj)^(-2/3);
+%end
+%[~, ind] = max(abs(C_xy_));
+
+%[~, ind] = min(abs(diff(log10(D_xy))./diff(log10(r_))'-2/3));
+
 % Find points where Structure function is within 5% of 2/3 power law
 % and where the separation distance is less than the measurement height
 % ONLY WORKS WITH 'spatial' FLAG
@@ -88,3 +95,30 @@ if sum(mask)==0
 else
     C_xy = median(D_xy(mask), 'omitnan').*median(r_(mask), 'omitnan')^(-2/3);
 end
+
+%if or(ind==1, ind==pnts)
+%    C_xy = nan;
+%    r = nan;
+%else
+%    C_xy = mean(C_xy_(ind-1:ind+1));
+%    r = r_(ind);
+%end
+% % % 
+% % % %Find r/z = sep
+% % % [~, ind] = min(abs(r./z-sep));
+% % % 
+% % % rVec = r(ind-r_diff:ind+r_diff);
+% % % 
+% % % rVec = rVec(rVec>0);
+% % % for qq=1:length(rVec)
+% % %     r_ = qq;
+% % %     
+% % %     if isnan(r_)
+% % %         C_xy(qq) = nan;
+% % %     end
+% % %     if flag
+% % %         C_xy(qq) = D_xy(r_)*((r_/freq)*U)^(-2/3);
+% % %     else
+% % %         C_xy(qq) = D_xy(r_)*((r_/freq))^(-2/3);
+% % %     end
+% % % end

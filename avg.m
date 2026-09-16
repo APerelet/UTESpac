@@ -9,8 +9,8 @@ for ii = 1:length(data)
         header = headers{ii};
         
         % find table frequency
-        tableFreq = 1/((currentTable(2,1) - currentTable(1,1))*(3600*24));
-        
+        %tableFreq = 1/((currentTable(2,1) - currentTable(1,1))*(3600*24));
+        tableFreq = 1/(mean(diff(currentTable(:, 1)))*3600*24);
         % find number of samples per averaging period
         numSamplesPerPeriod = round(info.avgPer*60*tableFreq);
         

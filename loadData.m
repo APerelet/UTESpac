@@ -54,8 +54,15 @@ for ii = 1:size(dataFiles,2)
         temp(:,4) = round(temp(:,4).*100)./100;
 
         % sort data in ascending order and ignore duplicates
-        dateNumbers = round(temp(:,2).*1e8 + temp(:,3).*10000+temp(:,4)*100);
+        % dateNumbers = round(temp(:,2).*1e8 + temp(:,3).*10000+temp(:,4)*100); % OLD VALUE IGNORED YEAR CAUSING ISSUES WHEN DATA ROLLED OVER TO NEW YEAR
+        dateNumbers = datenum(temp(:, 1), 0, temp(:, 2), floor(temp(:, 3)./100), temp(:, 3)-floor(temp(:, 3)./100).*100, temp(:, 4));
         [dateNumbers, ia2, ~] = unique(dateNumbers,'R2012a');
+        expectedDate = mode(floor(dateNumbers)); % In case there are some bad timestamps inside
+
+        weirdTimestampFlag = floor(dateNumbers)==expectedDate;
+
+        dateNumbers = dateNumbers(weirdTimestampFlag);
+        ia2 = ia2(weirdTimestampFlag);
         table = temp(ia2,:);
 
         % find cut off and eliminate all rows beyond 2 days

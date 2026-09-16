@@ -18,7 +18,11 @@ info.siteFolder = site;
 siteFolder = strcat(info.rootFolder,filesep,site, info.foldStruct);
 
 % run siteInfo script
-run(strcat(siteFolder,filesep,'siteInfo.m'));
+if exist([siteFolder,filesep,'siteInfo.m'], 'file')
+    run(strcat(siteFolder,filesep,'siteInfo.m'));
+else
+    error(['Cannot find ''siteInfo.m'' in ', siteFolder, char(13), 'Please Check UTESpac.m'])
+end
 
 % find headers for selected site
 headers = dir(strcat(siteFolder,filesep,'*header.*'));
@@ -215,8 +219,11 @@ for ii = 1:length(headers)
     % Check if there are files with outlier date stamps
     dateCheck = find(or(a<dateBegin, a>dateEnd));
         if ~isempty(dateCheck)
-           error(['The following Files do not fall outside expected time:', char(10),...
+           error(['The following File(s) fall outside expected time window of:', char(10),...
+               datestr(dateBegin, 'mmm. dd, YYYY'), ' to ',  datestr(dateEnd, 'mmm. dd, YYYY'), char(10),...
+               '.........................................................', char(10),...
                csvFiles{ind(dateCheck)}, char(10),...
+               '.........................................................', char(10),...
                'Please Delete or fix the dates']);
         end
     

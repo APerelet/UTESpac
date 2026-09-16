@@ -16,10 +16,10 @@ info.siteElevation = 5; % (m)
 
 % enter expected table names.  Missing tables will be filled with NaNs to create consistency 
 % when multiple output files are concatenated with getData.m
-info.tableNames = {'Blackhead_10m_FastResponse', 'Blackhead_10m_Radiation', 'Blackhead_10m_SlowResponse', 'Blackhead_Soil_SHF'};
+info.tableNames = {'Blackhead_10m_FastResponse', 'Blackhead_10m_Radiation', 'Blackhead_10m_SlowResponse'};
 
 % enter table names to ignore.
-info.TableIgnore = {'Blackhead_10m_GPS_Info', 'Blackhead_10m_GPS_NMEA', 'Blackhead_Soil_GPS_Info', 'Blackhead_Soil_GPS_NMEA'};
+info.TableIgnore = {'Blackhead_10m_GPS_Info', 'Blackhead_10m_GPS_NMEA', 'Blackhead_Soil_GPS_Info', 'Blackhead_Soil_GPS_NMEA', 'Blackhead_Soil_SHF'};
 
 % enter table scan frequencies corresponding to tableNames
 info.tableScanFrequency = [20, 1/60, 1, 1/60];  %[Hz]

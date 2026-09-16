@@ -24,8 +24,10 @@ else
 end
 if strcmp(info.detrendingFormat,'linear')
     detrendType = 'LinDet_';
-else
+elseif strcmp(info.detrendingFormat,'constant')
     detrendType = 'ConstDet_';
+elseif strcmp(info.detrendingFormat,'wavelet')
+    detrendType = 'MRADet_';
 end
 %% save .mat structure
 fileName = strcat(info.siteFolder(5:end),'_',num2str(info.avgPer),'minAvg_',PFtype,detrendType,fileDate,'.mat');
@@ -34,7 +36,7 @@ save(strcat(saveDir,filesep,outputDir, filesep, fileName),'output', '-v7.3');
 if info.saveCSV
     csvSave(template,output,info)
 end
-%% save netCDF  From: http://stackoverflow.com/questions/21053406/matlab-save-cell-arrays-to-netcdf-file
+%% save netCDF
 if info.saveNetCDF
 
     netCDFtDir = 'outputNetCDF';
@@ -48,29 +50,96 @@ if info.saveNetCDF
     
     ncFullFileName = strcat(saveDir,filesep,netCDFtDir,filesep,fileName);
     
+    % Delete file if it exists
     delete(ncFullFileName);
+
+    fields = fieldnames(output);
+
+    %Extract Headers
+    headerFlag = cellfun(@(x) contains(x, 'Header'), fields);   % Find headers
+    tableNameFlag = cellfun(@(x) contains(x, 'tableNames'), fields);    % Find table name field
+    tableFlag = cellfun(@(x) contains(x, 'Flag'), fields);              % Find Flag fields
+    warningFlag = cellfun(@(x) contains(x, 'warning'), fields);         % Find warning field
+    StructFuncFlag = cellfun(@(x) contains(x, 'StructFunc'), fields);         % Find warning field
     
-    % condition structure: convert cell strings to char arrays and logicals to doubles
-    allFields = fields(output);
-    for ii = 1:numel(allFields)
-        
-        % turn header cell strings to char arrays
-        if iscell(output.(allFields{ii})) && size(output.(allFields{ii}),1)<3 && size(output.(allFields{ii}),1)>0
-            output.(allFields{ii}) = output.(allFields{ii})(1,:);
-            for j = 1:size(output.(allFields{ii}),2)
-                output.(allFields{ii}){1,j} =  ['(',num2str(j),')',output.(allFields{ii}){1,j},' '];
+    % Header Fields
+    fieldHeaders = fields(headerFlag);
+    % Data Fields
+    fieldData = fields(~headerFlag & ~tableNameFlag & ~tableFlag & ~warningFlag & ~StructFuncFlag);
+    
+    % Iterate through output structure Data fields
+    for ii=1:length(fieldData)
+        % Check if header exists
+        CurrentHeaderFlag = cellfun(@(x) startsWith(x, fieldData{ii}), fieldHeaders);
+    
+        % Check if field is from raw data table and correct header
+        rawTableFlag = cellfun(@(x) strcmp(fieldData{ii}, x), output.tableNames);
+    
+        if any(rawTableFlag)
+            tmpHeader = {'time'};
+            for qq=2:length(output.([output.tableNames{rawTableFlag}, 'Header']))
+    
+                tmpHeader{qq} = [num2str(output.([output.tableNames{rawTableFlag}, 'Header']){2, qq}), 'm ', ...
+                    output.([output.tableNames{rawTableFlag}, 'Header']){1, qq}, ' [-]'];
             end
-            output.(allFields{ii}) = cell2mat(output.(allFields{ii}))';
-            
-            % turn logicals to floats
-        elseif islogical(output.(allFields{ii}))
-            output.(allFields{ii}) = double(output.(allFields{ii}));
-            
+            output.([output.tableNames{rawTableFlag}, 'Header']) = tmpHeader;
+        end
+    
+        if any(CurrentHeaderFlag)
+            % Check if header Exists
+            for jj = 1:length(output.(fieldHeaders{CurrentHeaderFlag}))
+    
+                % Check Data columns and save netCDF entry
+                if strcmp(output.(fieldHeaders{CurrentHeaderFlag}){jj}, 'time')
+                    % Check for time variable
+                    if exist(ncFullFileName, "file")
+                        tmp = ncinfo(ncFullFileName);
+                        timeFlag = any(cellfun(@(x) contains(x, 'time'), {tmp.Variables.Name}));
+                    else
+                        timeFlag = 0;
+                    end
+                    varName = 'time';
+                    varUnits = 'Time';
+                    varData = string(datestr(output.(fieldData{ii})(:, jj), 'yyyy mm dd HH:MM:SS.FFF'));
+                    varDim = size(varData);
+    
+                    % Create NC entry for time
+                    if ~timeFlag
+                        nccreate(ncFullFileName, varName, "Dimensions", {'x', varDim(1), 'y', varDim(2)}, "Datatype","string", "FillValue", "NaN", "Format","netcdf4");
+                        ncwrite(ncFullFileName, varName, varData);
+                        ncwriteatt(ncFullFileName, varName, 'Units', varUnits, 'Datatype','string');
+                    end
+                
+                else
+                    % Parse height, variable name, and units from data header
+                    varInfo = regexp(output.(fieldHeaders{CurrentHeaderFlag}){jj}, '(?<Height>(\d*.?\d*|N\/A)m)\s*(?<VarName>[^\[\]]+)\s?\[(?<Units>.*)\]', 'names');
+        
+                    varName = [varInfo.VarName, '_', varInfo.Height(1:end-1)];
+                    varUnits = varInfo.Units;
+                    varHeight = varInfo.Height;
+                    varData = output.(fieldData{ii})(:, jj);
+                    varDim = size(varData);
+        
+                    % Create NC Entry for data column
+    
+                    % Check if varName Exists
+                    tmp = ncinfo(ncFullFileName);
+                    if any(cellfun(@(x) contains(varName, x), {tmp.Variables.Name}))
+                        warning(['Found Duplicate Variable with name ', varName, ' in ', fieldHeaders{CurrentHeaderFlag}, '. Skipping duplicate instance. Fix header if this variable is important']);
+                    else
+                        nccreate(ncFullFileName, varName, "Dimensions", {'x', varDim(1), 'y', varDim(2)}, "Datatype","double", "FillValue", NaN, "Format","netcdf4");
+                        ncwrite(ncFullFileName, varName, varData);
+                        ncwriteatt(ncFullFileName, varName, 'Units', varUnits, 'Datatype','string');
+                        ncwriteatt(ncFullFileName, varName, 'Height', varHeight, 'Datatype','string');
+                    end
+                end
+            end
+        else
+            % If no header exists do not save data
+            warning(['No header found for field ', fieldData{ii}, '. Skipping field. If important please include header!']);
         end
     end
-    
-    struct2nc(output,ncFullFileName)
-    ncdisp(ncFullFileName);
+     
 end
 %% save raw fluxes
 if info.saveRawConditionedData

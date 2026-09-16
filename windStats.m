@@ -54,9 +54,9 @@ if isfield(sensorInfo,'u')
             end
             output.spdAndDir(1:length(spd),1) = t;
             output.spdAndDir(1:length(spd),ii*3-1:ii*3+1) = [dir spd flag];
-            output.spdAndDirHeader{1} = 'timeStamp';
-            output.spdAndDirHeader{ii*3-1} = sprintf('%gm direction',sonHeight);
-            output.spdAndDirHeader{ii*3} = sprintf('%gm speed',sonHeight);
-            output.spdAndDirHeader{ii*3+1} = sprintf('%gm flag %g<dir<%g',sonHeight,minAngle,maxAngle);
+            output.spdAndDirHeader{1} = 'time';
+            output.spdAndDirHeader{ii*3-1} = strcat(num2str(sonHeight), 'm Direction [deg]');
+            output.spdAndDirHeader{ii*3} = strcat(num2str(sonHeight), 'm Speed [m/s]');
+            output.spdAndDirHeader{ii*3+1} = strcat(num2str(sonHeight), 'm Dir_Flag_', num2str(minAngle), '<Dir<', num2str(maxAngle), '[-]');
     end
 end
